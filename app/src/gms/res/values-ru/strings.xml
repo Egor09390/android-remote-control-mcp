@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="event_channel_subtitle">Передача уведомлений, событий Wi-Fi и геозон</string>
+    <string name="permission_location_rationale">Определение координат GPS и отслеживание геозон.</string>
+    <string name="permission_background_location">Фоновый доступ к местоположению</string>
+    <string name="permission_background_location_open_settings">Открыть настройки</string>
+    <string name="permission_background_location_open_settings_spoken">Нет разрешения, открыть настройки</string>
+    <string name="permission_background_location_rationale">Отправка событий геозон в фоновом режиме.</string>
+    <string name="geofence_events">События геозон</string>
+    <string name="geofence_add_zone">Добавить зону</string>
+    <string name="geofence_delete_zone">Удалить %1$s</string>
+    <string name="geofence_edit_action">изменить</string>
+    <string name="geofence_my_location">Моё местоположение</string>
+    <string name="geofence_search">Поиск</string>
+    <string name="geofence_list_title">Геозоны</string>
+    <string name="geofence_list_empty">Геозоны не настроены</string>
+    <string name="geofence_zone_summary">%1$.4f, %2$.4f — %3$d м</string>
+    <string name="geofence_marker_coordinates">%1$.6f, %2$.6f</string>
+    <string name="geofence_delete_dialog_title">Удалить зону?</string>
+    <string name="geofence_delete_dialog_message">Удалить «%1$s»?</string>
+    <string name="geofence_delete_dialog_confirm">Удалить</string>
+    <string name="geofence_delete_dialog_cancel">Отмена</string>
+    <string name="geofence_edit_zone_title">Изменить зону</string>
+    <string name="geofence_add_zone_title">Добавить зону</string>
+    <string name="geofence_save">Сохранить</string>
+    <string name="geofence_zone_name_placeholder">Название зоны</string>
+    <string name="geofence_notifications_label">Уведомления</string>
+    <string name="geofence_notify_enter">Вход</string>
+    <string name="geofence_notify_exit">Выход</string>
+    <string name="geofence_radius">Радиус: %1$s</string>
+    <string name="geofence_search_placeholder">Поиск адреса</string>
+    <string name="geofence_radius_miles">%1$.1f мили</string>
+    <string name="geofence_radius_feet">%1$d футов</string>
+    <string name="geofence_radius_kilometers">%1$.1f км</string>
+    <string name="geofence_radius_meters">%1$d м</string>
+</resources>
