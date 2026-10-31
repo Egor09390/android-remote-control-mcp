@@ -28,9 +28,8 @@ name: Edge Release
 #   404); harmless for single-APK installs, unavoidable with the releases API.
 
 on:
-  push:
-    branches:
-      - main
+  # The original rolling 4-APK edge build is disabled for this single-APK fork.
+  workflow_dispatch:
 
 permissions:
   contents: write

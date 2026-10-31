@@ -1,10 +1,8 @@
 name: CI
 
 on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+  # Optional full upstream test suite, not run automatically for this single-APK fork.
+  workflow_dispatch:
 
 permissions:
   contents: read

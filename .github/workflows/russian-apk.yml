@@ -1,4 +1,4 @@
-name: Build Russian APKs (4 variants)
+name: Build Russian APK (GMS Release)
 
 on:
   workflow_dispatch:
@@ -7,19 +7,20 @@ on:
       - main
     paths:
       - '.github/workflows/russian-apk.yml'
-      - 'app/src/main/res/values-ru/**'
-      - 'app/src/gms/res/values-ru/**'
+      - 'app/**'
+      - 'build.gradle.kts'
+      - 'gradle/**'
 
 permissions:
   contents: write
 
 concurrency:
   group: russian-apk-release
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   build-and-release:
-    name: Build and publish GMS/FOSS debug/release APKs
+    name: Build and publish Russian GMS Release APK
     runs-on: ubuntu-latest
     timeout-minutes: 150
     env:
@@ -116,32 +117,26 @@ jobs:
           } > keystore.properties
           chmod 600 keystore.properties "$KEYSTORE_FILE"
 
-      - name: Build all 4 localized APK variants
-        run: ./gradlew --no-daemon assembleGmsDebug assembleFossDebug assembleGmsRelease assembleFossRelease
+      - name: Build Russian GMS release APK
+        run: ./gradlew --no-daemon assembleGmsRelease
 
-      - name: Collect and verify 4 APK files
+      - name: Collect and verify signed GMS release APK
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p release-assets
-          for flavor in gms foss; do
-            cp "app/build/outputs/apk/$flavor/debug/app-$flavor-debug.apk" \
-              "release-assets/android-remote-control-mcp-ru-$flavor-debug.apk"
-            cp "app/build/outputs/apk/$flavor/release/app-$flavor-release.apk" \
-              "release-assets/android-remote-control-mcp-ru-$flavor-release.apk"
-          done
-          test "$(find release-assets -maxdepth 1 -name '*.apk' | wc -l)" -eq 4
+          cp "app/build/outputs/apk/gms/release/app-gms-release.apk" \
+            "release-assets/android-remote-control-mcp-ru-gms-release.apk"
+          test "$(find release-assets -maxdepth 1 -name '*.apk' | wc -l)" -eq 1
           APKSIGNER="$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -1)"
           test -n "$APKSIGNER"
-          for apk in release-assets/*.apk; do
-            "$APKSIGNER" verify "$apk"
-          done
+          "$APKSIGNER" verify "release-assets/android-remote-control-mcp-ru-gms-release.apk"
           ls -lh release-assets/
 
-      - name: Upload all four APKs to Actions artifacts
+      - name: Upload Russian GMS APK to Actions artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: android-remote-control-mcp-russian-4-apks
+          name: android-remote-control-mcp-russian-gms-release
           path: release-assets/*.apk
           retention-days: 30
           if-no-files-found: error
@@ -153,19 +148,14 @@ jobs:
         run: |
           set -euo pipefail
           cat > release-notes.md <<'NOTES'
-          Russian-localized Android Remote Control MCP from this fork.
+          Русская версия Android Remote Control MCP для телефонов с Google Play Services, включая Samsung Galaxy.
 
-          Four Android installation files:
-          - GMS Release: for Samsung and other phones with Google Play Services.
-          - FOSS Release: without Google Play Services.
-          - GMS Debug: development build (installs beside the release app).
-          - FOSS Debug: development build (installs beside the release app).
+          Единственный установочный файл: android-remote-control-mcp-ru-gms-release.apk.
 
-          **Signing:** This workflow uses RU_KEYSTORE_* repository secrets if supplied.
-          Without those secrets it creates a new signing key each run. Such releases
-          cannot update an earlier installation unless the same key is reused.
-          Also, release GMS and FOSS use the same Android package name and cannot
-          be installed beside each other.
+          Внимание: APK подписан ключом этого форка, а не оригинального разработчика.
+          Без RU_KEYSTORE_* secrets используется временный новый ключ для каждого запуска:
+          следующие APK не смогут обновить существующую установку без переустановки.
+
           NOTES
           if gh release view ru-build > /dev/null 2>&1; then
             gh release edit ru-build --notes-file release-notes.md
@@ -177,3 +167,13 @@ jobs:
               --notes-file release-notes.md \
               --prerelease
           fi
+
+          # Remove previously published Debug/FOSS APKs from the old four-variant workflow.
+          release_id="$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/ru-build" --jq '.id')"
+          gh api "repos/$GITHUB_REPOSITORY/releases/$release_id/assets" --paginate \
+            --jq '.[] | select(.name != "android-remote-control-mcp-ru-gms-release.apk") | .id' |
+            while read -r asset_id; do
+              if [ -n "$asset_id" ]; then
+                gh api -X DELETE "repos/$GITHUB_REPOSITORY/releases/assets/$asset_id"
+              fi
+            done
