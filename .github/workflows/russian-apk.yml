@@ -1,0 +1,179 @@
+name: Build Russian APKs (4 variants)
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/russian-apk.yml'
+      - 'app/src/main/res/values-ru/**'
+      - 'app/src/gms/res/values-ru/**'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: russian-apk-release
+  cancel-in-progress: false
+
+jobs:
+  build-and-release:
+    name: Build and publish GMS/FOSS debug/release APKs
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    env:
+      CLOUDFLARED_GO_VERSION: '1.27.3'
+    steps:
+      - name: Checkout with submodules and tags
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.27.3'
+
+      - name: Set up Rust for Android
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android,x86_64-linux-android
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Cache cloudflared and ngrok native dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            app/src/main/jniLibs/arm64-v8a/libcloudflared.so
+            app/src/main/jniLibs/x86_64/libcloudflared.so
+            app/src/main/jniLibs/arm64-v8a/libngrok_java.so
+            app/src/main/jniLibs/x86_64/libngrok_java.so
+            vendor/ngrok-java/ngrok-java/target/ngrok-java-1.2.0-SNAPSHOT.jar
+            vendor/ngrok-java/ngrok-java-native/target/ngrok-java-native-classes.jar
+          key: russian-native-v1-${{ hashFiles('.gitmodules', 'Makefile', 'vendor/cloudflared/go.sum', 'vendor/ngrok-java/ngrok-java-native/Cargo.lock') }}
+
+      - name: Build cloudflared Android libraries
+        run: |
+          if [ ! -f app/src/main/jniLibs/arm64-v8a/libcloudflared.so ] || [ ! -f app/src/main/jniLibs/x86_64/libcloudflared.so ]; then
+            make compile-cloudflared
+          fi
+
+      - name: Build ngrok Android libraries
+        env:
+          JAVA_11_HOME: ${{ env.JAVA_HOME }}
+          JAVA_17_HOME: ${{ env.JAVA_HOME }}
+        run: |
+          if [ ! -f app/src/main/jniLibs/arm64-v8a/libngrok_java.so ] || [ ! -f app/src/main/jniLibs/x86_64/libngrok_java.so ]; then
+            make compile-ngrok-native
+          fi
+
+      - name: Configure release signing
+        env:
+          RU_KEYSTORE_BASE64: ${{ secrets.RU_KEYSTORE_BASE64 }}
+          RU_KEYSTORE_PASSWORD: ${{ secrets.RU_KEYSTORE_PASSWORD }}
+          RU_KEY_ALIAS: ${{ secrets.RU_KEY_ALIAS }}
+          RU_KEY_PASSWORD: ${{ secrets.RU_KEY_PASSWORD }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          KEYSTORE_FILE="$GITHUB_WORKSPACE/ru-release.jks"
+          if [ -n "$RU_KEYSTORE_BASE64" ] && [ -n "$RU_KEYSTORE_PASSWORD" ] && [ -n "$RU_KEY_ALIAS" ] && [ -n "$RU_KEY_PASSWORD" ]; then
+            printf '%s' "$RU_KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE_FILE"
+            KEYSTORE_PASSWORD="$RU_KEYSTORE_PASSWORD"
+            KEY_ALIAS="$RU_KEY_ALIAS"
+            KEY_PASSWORD="$RU_KEY_PASSWORD"
+            echo "SIGNING_MODE=owner" >> "$GITHUB_ENV"
+          else
+            KEYSTORE_PASSWORD="$(openssl rand -hex 24)"
+            KEY_ALIAS="russian-community-release"
+            KEY_PASSWORD="$KEYSTORE_PASSWORD"
+            keytool -genkeypair -noprompt -keyalg RSA -keysize 3072 -validity 10000 \
+              -keystore "$KEYSTORE_FILE" -storepass "$KEYSTORE_PASSWORD" -keypass "$KEY_PASSWORD" \
+              -alias "$KEY_ALIAS" -dname "CN=Personal Russian build, O=Android Remote Control MCP"
+            echo "SIGNING_MODE=temporary" >> "$GITHUB_ENV"
+            echo "::warning::No persistent signing secrets: generated release APKs cannot be upgraded by a later build signed with another key."
+          fi
+          {
+            printf 'storeFile=%s\n' "$KEYSTORE_FILE"
+            printf 'storePassword=%s\n' "$KEYSTORE_PASSWORD"
+            printf 'keyAlias=%s\n' "$KEY_ALIAS"
+            printf 'keyPassword=%s\n' "$KEY_PASSWORD"
+          } > keystore.properties
+          chmod 600 keystore.properties "$KEYSTORE_FILE"
+
+      - name: Build all 4 localized APK variants
+        run: ./gradlew --no-daemon assembleGmsDebug assembleFossDebug assembleGmsRelease assembleFossRelease
+
+      - name: Collect and verify 4 APK files
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p release-assets
+          for flavor in gms foss; do
+            cp "app/build/outputs/apk/$flavor/debug/app-$flavor-debug.apk" \
+              "release-assets/android-remote-control-mcp-ru-$flavor-debug.apk"
+            cp "app/build/outputs/apk/$flavor/release/app-$flavor-release.apk" \
+              "release-assets/android-remote-control-mcp-ru-$flavor-release.apk"
+          done
+          test "$(find release-assets -maxdepth 1 -name '*.apk' | wc -l)" -eq 4
+          APKSIGNER="$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -1)"
+          test -n "$APKSIGNER"
+          for apk in release-assets/*.apk; do
+            "$APKSIGNER" verify "$apk"
+          done
+          ls -lh release-assets/
+
+      - name: Upload all four APKs to Actions artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-remote-control-mcp-russian-4-apks
+          path: release-assets/*.apk
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: Publish APKs in GitHub Releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > release-notes.md <<'NOTES'
+          Russian-localized Android Remote Control MCP from this fork.
+
+          Four Android installation files:
+          - GMS Release: for Samsung and other phones with Google Play Services.
+          - FOSS Release: without Google Play Services.
+          - GMS Debug: development build (installs beside the release app).
+          - FOSS Debug: development build (installs beside the release app).
+
+          **Signing:** This workflow uses RU_KEYSTORE_* repository secrets if supplied.
+          Without those secrets it creates a new signing key each run. Such releases
+          cannot update an earlier installation unless the same key is reused.
+          Also, release GMS and FOSS use the same Android package name and cannot
+          be installed beside each other.
+          NOTES
+          if gh release view ru-build > /dev/null 2>&1; then
+            gh release edit ru-build --notes-file release-notes.md
+            gh release upload ru-build release-assets/*.apk --clobber
+          else
+            gh release create ru-build release-assets/*.apk \
+              --target "$GITHUB_SHA" \
+              --title "Android Remote Control MCP — русская сборка" \
+              --notes-file release-notes.md \
+              --prerelease
+          fi
