@@ -67,6 +67,7 @@ private val SELF_HOSTED_TUNNEL_URL_KEY = stringPreferencesKey("self_hosted_tunne
 private val SELF_HOSTED_TUNNEL_TOKEN_KEY = stringPreferencesKey("self_hosted_tunnel_token")
 private val ARTEMIS_ADB_PORT_KEY = intPreferencesKey("artemis_adb_port")
 private val ARTEMIS_PAIRING_PORT_KEY = intPreferencesKey("artemis_pairing_port")
+private val ARTEMIS_ROOT_ADB_ENABLED_KEY = booleanPreferencesKey("artemis_root_adb_enabled")
 private val TUNNEL_PROVIDER_MIGRATED_KEY = booleanPreferencesKey("tunnel_provider_migrated")
 private val FILE_SIZE_LIMIT_KEY = intPreferencesKey("file_size_limit_mb")
 private val DOWNLOAD_TIMEOUT_KEY = intPreferencesKey("download_timeout_seconds")
@@ -145,6 +146,7 @@ private fun mapPreferencesToServerConfig(prefs: Preferences): ServerConfig {
         selfHostedTunnelToken = prefs[SELF_HOSTED_TUNNEL_TOKEN_KEY] ?: "",
         artemisAdbPort = prefs[ARTEMIS_ADB_PORT_KEY] ?: 0,
         artemisPairingPort = prefs[ARTEMIS_PAIRING_PORT_KEY] ?: 0,
+        artemisRootAdbEnabled = prefs[ARTEMIS_ROOT_ADB_ENABLED_KEY] ?: false,
         arcTunnelBaseAddress = prefs[ARC_TUNNEL_BASE_ADDRESS_KEY] ?: ServerConfig.DEFAULT_ARC_TUNNEL_BASE_ADDRESS,
         arcTunnelCtCheckEnabled = prefs[ARC_TUNNEL_CT_CHECK_ENABLED_KEY] ?: true,
         arcTunnelEdgeOverride = prefs[ARC_TUNNEL_EDGE_OVERRIDE_KEY] ?: "",
@@ -599,6 +601,11 @@ class SettingsRepositoryImpl
         override suspend fun updateArtemisPairingPort(port: Int) =
             logScalarChange(ARTEMIS_PAIRING_PORT_KEY, "artemis_pairing_port", port.coerceIn(0, 65535), 0) { o, n ->
                 "Artemis pairing port changed from $o to $n"
+            }
+
+        override suspend fun updateArtemisRootAdbEnabled(enabled: Boolean) =
+            logScalarChange(ARTEMIS_ROOT_ADB_ENABLED_KEY, "artemis_root_adb_enabled", enabled, false) { _, _ ->
+                "Local root ADB preference updated"
             }
 
         override suspend fun updateFileSizeLimit(limitMb: Int) =
