@@ -91,6 +91,7 @@ internal object RootAdbManager {
                 it.connect(InetSocketAddress("127.0.0.1", PORT), 2500)
             }
             Log.i(TAG, "ADB verified only on 127.0.0.1:5555")
+            Unit
         }
     }
 }
