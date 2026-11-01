@@ -66,6 +66,8 @@ data class ServerConfig(
     val cloudflareTunnelMode: CloudflareTunnelMode = CloudflareTunnelMode.FREE,
     val cloudflareTunnelToken: String = "",
     val cloudflareTunnelExtraArgs: String = "",
+    val selfHostedTunnelUrl: String = "",
+    val selfHostedTunnelToken: String = "",
     val arcTunnelBaseAddress: String = DEFAULT_ARC_TUNNEL_BASE_ADDRESS,
     val arcTunnelCtCheckEnabled: Boolean = true,
     val arcTunnelEdgeOverride: String = "",
