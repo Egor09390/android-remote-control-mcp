@@ -12,7 +12,7 @@ case "$STAGE" in
  *) die "Unsafe staging location" ;;
 esac
 trap 'rm -rf -- "$STAGE"' EXIT
-FILES=(main.go go.mod go.sum Dockerfile docker-compose.yml Caddyfile .env android-install.sh)
+FILES=(main.go adb_bridge.go go.mod go.sum Dockerfile docker-compose.yml Caddyfile .env android-install.sh)
 [[ -n "$HOME" && "$HOME" != "/" ]] || die "Unsafe home directory"
 [[ ! -L "$TARGET" ]] || die "Managed target must not be a symlink"
 [[ -f "$STAGE/.manifest" ]] || die "Missing upload checksums"
@@ -46,7 +46,7 @@ else
  while IFS= read -r found; do
    filename="$(basename "$found")"
    case "$filename" in
-    main.go|go.mod|go.sum|Dockerfile|docker-compose.yml|Caddyfile|.env|android-install.sh|.android-mcp-managed|.manifest) ;;
+    main.go|adb_bridge.go|go.mod|go.sum|Dockerfile|docker-compose.yml|Caddyfile|.env|android-install.sh|.android-mcp-managed|.manifest) ;;
     *) MATCH=0 ;;
    esac
  done < <(find "$TARGET" -type f)
