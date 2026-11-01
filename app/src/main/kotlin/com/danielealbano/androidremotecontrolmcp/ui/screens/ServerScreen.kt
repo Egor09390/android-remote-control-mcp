@@ -54,6 +54,7 @@ import com.danielealbano.androidremotecontrolmcp.services.tunnel.arctunnel.ArcTu
 import com.danielealbano.androidremotecontrolmcp.ui.ApprovalActivity
 import com.danielealbano.androidremotecontrolmcp.ui.components.BatteryOptimizationCard
 import com.danielealbano.androidremotecontrolmcp.ui.components.CalloutCard
+import com.danielealbano.androidremotecontrolmcp.ui.components.OwnVpsSetupCard
 import com.danielealbano.androidremotecontrolmcp.ui.components.ConnectionInfoCard
 import com.danielealbano.androidremotecontrolmcp.ui.components.PrivacyModeCard
 import com.danielealbano.androidremotecontrolmcp.ui.components.ServerLogsSection
@@ -122,6 +123,14 @@ fun ServerScreen(
                     .verticalScroll(rememberScrollState())
                     .padding(16.dp),
         ) {
+            OwnVpsSetupCard(
+                config = serverConfig,
+                onConfigured = { baseUrl, secret ->
+                    viewModel.activateOwnVps(context, baseUrl, secret)
+                },
+            )
+            Spacer(Modifier.height(16.dp))
+
             if (!isAccessibilityEnabled) {
                 PermissionWarningCard(onClick = onNavigateToPermissions)
                 Spacer(Modifier.height(16.dp))
