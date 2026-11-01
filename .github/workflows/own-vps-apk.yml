@@ -119,7 +119,7 @@ jobs:
           chmod 600 keystore.properties "$KEYSTORE_FILE"
 
       - name: Build Russian GMS release APK
-        run: ./gradlew --no-daemon assembleGmsRelease
+        run: ./gradlew --no-daemon assembleGmsRelease -POWN_VPS_TEST_APK=true
 
       - name: Collect and verify signed GMS release APK
         shell: bash
