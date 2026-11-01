@@ -486,4 +486,9 @@
     <string name="chatgpt_connector_copy_url">Скопировать ссылку для коннектора</string>
     <string name="chatgpt_connector_not_ready">Включите сервер MCP и подключите HTTPS-туннель к вашему VPS. Когда соединение установится, здесь появится ссылка для ChatGPT. Локальный адрес 127.0.0.1 не подходит.</string>
     <string name="chatgpt_connector_security_note">Вставьте ссылку в ChatGPT → Плагины → Добавить пользовательский MCP-сервер. Для управления устройством также нужны разрешение специальных возможностей, поддерживаемая подписка ChatGPT и авторизация MCP.</string>
+
+    <string name="artemis_bridge_title">ARTEMIS: мост ADB к VPS</string>
+    <string name="artemis_bridge_note">В настройках Android включите «Для разработчиков» → «Беспроводная отладка». Порт устройства и временный порт сопряжения вводятся здесь. Сопряжение ADB с ARTEMIS на VPS выполняется отдельно. После изменения портов перезапустите MCP. Без сопряжения полноценный ARTEMIS недоступен.</string>
+    <string name="artemis_bridge_adb_port">Порт беспроводной отладки ADB</string>
+    <string name="artemis_bridge_pairing_port">Порт сопряжения ADB (необязательно)</string>
 </resources>
