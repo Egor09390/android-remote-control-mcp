@@ -128,6 +128,12 @@ class MainViewModel
         private val _cloudflareExtraArgsInput = MutableStateFlow("")
         val cloudflareExtraArgsInput: StateFlow<String> = _cloudflareExtraArgsInput.asStateFlow()
 
+        private val _selfHostedUrlInput = MutableStateFlow("")
+        val selfHostedUrlInput: StateFlow<String> = _selfHostedUrlInput.asStateFlow()
+
+        private val _selfHostedTokenInput = MutableStateFlow("")
+        val selfHostedTokenInput: StateFlow<String> = _selfHostedTokenInput.asStateFlow()
+
         private val _storageLocations = MutableStateFlow<List<StorageLocation>>(emptyList())
         val storageLocations: StateFlow<List<StorageLocation>> = _storageLocations.asStateFlow()
 
@@ -175,6 +181,8 @@ class MainViewModel
                     _ngrokDomainInput.value = config.ngrokDomain
                     _cloudflareTokenInput.value = config.cloudflareTunnelToken
                     _cloudflareExtraArgsInput.value = config.cloudflareTunnelExtraArgs
+                    _selfHostedUrlInput.value = config.selfHostedTunnelUrl
+                    _selfHostedTokenInput.value = config.selfHostedTunnelToken
                     _fileSizeLimitInput.value = config.fileSizeLimitMb.toString()
                     _fileSizeLimitError.value = null
                     _downloadTimeoutInput.value = config.downloadTimeoutSeconds.toString()
@@ -400,6 +408,16 @@ class MainViewModel
             viewModelScope.launch(ioDispatcher) {
                 settingsRepository.updateCloudflareTunnelToken(token)
             }
+        }
+
+        fun updateSelfHostedTunnelUrl(url: String) {
+            _selfHostedUrlInput.value = url
+            viewModelScope.launch(ioDispatcher) { settingsRepository.updateSelfHostedTunnelUrl(url) }
+        }
+
+        fun updateSelfHostedTunnelToken(token: String) {
+            _selfHostedTokenInput.value = token
+            viewModelScope.launch(ioDispatcher) { settingsRepository.updateSelfHostedTunnelToken(token) }
         }
 
         fun updateCloudflareTunnelExtraArgs(extraArgs: String) {
