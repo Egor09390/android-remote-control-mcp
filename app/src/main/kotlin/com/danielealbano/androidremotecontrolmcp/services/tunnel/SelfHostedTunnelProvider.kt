@@ -77,15 +77,24 @@ class SelfHostedTunnelProvider @Inject constructor() : TunnelProvider {
             baseUrl = url
             secret = config.selfHostedTunnelToken
             port = localPort
+            if (config.artemisRootAdbEnabled) {
+                val result = RootAdbManager.enableLoopback()
+                if (result.isFailure) {
+                    val reason = result.exceptionOrNull()?.message ?: "Root access denied"
+                    state.value = TunnelStatus.Error("Root ADB unavailable: " + reason)
+                    return
+                }
+            }
             stopped = false
             retries = 0
             state.value = TunnelStatus.Connecting
             connect()
             // Start a distinct outbound binary tunnel for the official Artemis ADB backend.
             // Port 0 disables a bridge. Enabling the port alone cannot grant ADB permissions.
-            if (config.artemisAdbPort in 1..65535) {
+            val effectiveAdbPort = if (config.artemisRootAdbEnabled) RootAdbManager.PORT else config.artemisAdbPort
+            if (effectiveAdbPort in 1..65535) {
                 ArtemisAdbBridge(
-                    websocketClient, scope, baseUrl, secret, config.artemisAdbPort, "/adb/device",
+                    websocketClient, scope, baseUrl, secret, effectiveAdbPort, "/adb/device",
                 ).also { artemisBridges.add(it); it.start() }
             }
             if (config.artemisPairingPort in 1..65535) {
