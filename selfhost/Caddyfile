@@ -1,0 +1,4 @@
+{$MCP_DOMAIN} {
+    encode gzip
+    reverse_proxy relay:18080
+}
