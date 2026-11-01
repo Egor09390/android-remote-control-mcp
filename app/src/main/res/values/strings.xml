@@ -523,4 +523,18 @@
     <string name="privacy_card_title">Worried about personal data?</string>
     <string name="privacy_card_action">Set up Privacy Mode</string>
     <string name="privacy_card_dismiss">Dismiss</string>
+
+    <string name="remote_access_provider_self_hosted">Own VPS</string>
+    <string name="remote_access_provider_self_hosted_desc">Self-hosted reverse tunnel on your VPS without third parties</string>
+    <string name="remote_access_self_hosted_url_label">VPS HTTPS URL</string>
+    <string name="remote_access_self_hosted_token_label">Tunnel secret</string>
+    <string name="selfhost_card_title">My VPS: automatic setup</string>
+    <string name="selfhost_ip">VPS IP address</string>
+    <string name="selfhost_port">SSH port</string>
+    <string name="selfhost_user">SSH username</string>
+    <string name="selfhost_password">SSH password</string>
+    <string name="selfhost_domain">MCP domain (DNS points to VPS)</string>
+    <string name="selfhost_fingerprint">SSH host key SHA256 fingerprint</string>
+    <string name="selfhost_install">Audit and restore VPS</string>
+    <string name="selfhost_note">The password is never saved. Verify the server SSH host key fingerprint. Requires Docker, Compose and a domain pointed at the VPS.</string>
 </resources>
