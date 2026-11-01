@@ -63,6 +63,8 @@ private val NGROK_DOMAIN_KEY = stringPreferencesKey("ngrok_domain")
 private val CLOUDFLARE_TUNNEL_MODE_KEY = stringPreferencesKey("cloudflare_tunnel_mode")
 private val CLOUDFLARE_TUNNEL_TOKEN_KEY = stringPreferencesKey("cloudflare_tunnel_token")
 private val CLOUDFLARE_TUNNEL_EXTRA_ARGS_KEY = stringPreferencesKey("cloudflare_tunnel_extra_args")
+private val SELF_HOSTED_TUNNEL_URL_KEY = stringPreferencesKey("self_hosted_tunnel_url")
+private val SELF_HOSTED_TUNNEL_TOKEN_KEY = stringPreferencesKey("self_hosted_tunnel_token")
 private val TUNNEL_PROVIDER_MIGRATED_KEY = booleanPreferencesKey("tunnel_provider_migrated")
 private val FILE_SIZE_LIMIT_KEY = intPreferencesKey("file_size_limit_mb")
 private val DOWNLOAD_TIMEOUT_KEY = intPreferencesKey("download_timeout_seconds")
@@ -137,6 +139,8 @@ private fun mapPreferencesToServerConfig(prefs: Preferences): ServerConfig {
                 ?: CloudflareTunnelMode.FREE,
         cloudflareTunnelToken = prefs[CLOUDFLARE_TUNNEL_TOKEN_KEY] ?: "",
         cloudflareTunnelExtraArgs = prefs[CLOUDFLARE_TUNNEL_EXTRA_ARGS_KEY] ?: "",
+        selfHostedTunnelUrl = prefs[SELF_HOSTED_TUNNEL_URL_KEY] ?: "",
+        selfHostedTunnelToken = prefs[SELF_HOSTED_TUNNEL_TOKEN_KEY] ?: "",
         arcTunnelBaseAddress = prefs[ARC_TUNNEL_BASE_ADDRESS_KEY] ?: ServerConfig.DEFAULT_ARC_TUNNEL_BASE_ADDRESS,
         arcTunnelCtCheckEnabled = prefs[ARC_TUNNEL_CT_CHECK_ENABLED_KEY] ?: true,
         arcTunnelEdgeOverride = prefs[ARC_TUNNEL_EDGE_OVERRIDE_KEY] ?: "",
@@ -571,6 +575,16 @@ class SettingsRepositoryImpl
                 "",
             ) { o, n ->
                 "Cloudflare tunnel extra arguments changed $o → $n"
+            }
+
+        override suspend fun updateSelfHostedTunnelUrl(url: String) =
+            logScalarChange(SELF_HOSTED_TUNNEL_URL_KEY, "self_hosted_tunnel_url", url, "") { _, _ ->
+                "Personal VPS URL updated"
+            }
+
+        override suspend fun updateSelfHostedTunnelToken(token: String) =
+            logScalarChange(SELF_HOSTED_TUNNEL_TOKEN_KEY, "self_hosted_tunnel_token", token, "") { _, _ ->
+                "Personal VPS secret updated"
             }
 
         override suspend fun updateFileSizeLimit(limitMb: Int) =
