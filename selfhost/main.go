@@ -10,7 +10,6 @@ import (
  "fmt"
  "io"
  "log"
- "net"
  "net/http"
  "os"
  "strings"
@@ -70,6 +69,10 @@ func(s *server)connect(w http.ResponseWriter,r *http.Request){
  }()
  _=conn.SetReadDeadline(time.Now().Add(100*time.Second))
  conn.SetPongHandler(func(string)error{return conn.SetReadDeadline(time.Now().Add(100*time.Second))})
+ conn.SetPingHandler(func(payload string)error{
+   _=conn.SetReadDeadline(time.Now().Add(100*time.Second))
+   return conn.WriteControl(websocket.PongMessage,[]byte(payload),time.Now().Add(10*time.Second))
+ })
  for{
   var p packet
   if err:=conn.ReadJSON(&p);err!=nil{return}
@@ -129,11 +132,10 @@ func(s *server)forward(w http.ResponseWriter,r *http.Request){
  }
 }
 func main(){
- listen:=flag.String("listen","127.0.0.1:18080","address for local Caddy")
+ listen:=flag.String("listen",":18080","Docker-internal listener, never publish externally")
  flag.Parse()
  s,err:=newServer(os.Getenv("MCP_TUNNEL_TOKEN"));if err!=nil{log.Fatal(err)}
- host,_,err:=net.SplitHostPort(*listen);if err!=nil{log.Fatal(err)}
- ip:=net.ParseIP(host);if ip==nil||!ip.IsLoopback(){log.Fatal("relay must listen on loopback only")}
+
  mux:=http.NewServeMux()
  mux.HandleFunc("/agent",s.connect);mux.HandleFunc("/",s.forward)
  server:=&http.Server{Addr:*listen,Handler:mux,ReadHeaderTimeout:10*time.Second,
