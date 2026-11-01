@@ -55,6 +55,7 @@ import com.danielealbano.androidremotecontrolmcp.ui.ApprovalActivity
 import com.danielealbano.androidremotecontrolmcp.ui.components.BatteryOptimizationCard
 import com.danielealbano.androidremotecontrolmcp.ui.components.CalloutCard
 import com.danielealbano.androidremotecontrolmcp.ui.components.OwnVpsSetupCard
+import com.danielealbano.androidremotecontrolmcp.ui.components.ChatGptConnectorCard
 import com.danielealbano.androidremotecontrolmcp.ui.components.ConnectionInfoCard
 import com.danielealbano.androidremotecontrolmcp.ui.components.PrivacyModeCard
 import com.danielealbano.androidremotecontrolmcp.ui.components.ServerLogsSection
@@ -207,6 +208,19 @@ fun ServerScreen(
                 onChannelStopClick = { channelViewModel.stopChannel() },
                 startEnabled = isAccessibilityEnabled,
                 mcpStartBlockedMessage = listenerCheck.startError,
+            )
+
+            Spacer(Modifier.height(16.dp))
+
+            ChatGptConnectorCard(
+                serverStatus = serverStatus,
+                tunnelStatus = tunnelStatus,
+                onCopyUrl = { url ->
+                    scope.launch {
+                        clipboard.setClipEntry(ClipEntry(ClipData.newPlainText("ChatGPT MCP URL", url)))
+                        Toast.makeText(context, copiedToClipboardMessage, Toast.LENGTH_SHORT).show()
+                    }
+                },
             )
 
             Spacer(Modifier.height(16.dp))
