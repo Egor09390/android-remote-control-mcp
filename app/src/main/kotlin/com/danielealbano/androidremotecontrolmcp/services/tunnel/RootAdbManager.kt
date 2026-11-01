@@ -26,7 +26,7 @@ internal object RootAdbManager {
                 OLD_LISTEN="$(getprop service.adb.listen_addrs)"
                 OLD_TCP="$(getprop service.adb.tcp.port)"
                 rollback() {
-                  setprop service.adb.listen_addrs "$OLD_LISTEN"
+                  setprop service.adb.listen_addrs "${'OLD_LISTEN"
                   setprop service.adb.tcp.port "$OLD_TCP"
                   stop adbd
                   start adbd
@@ -66,6 +66,252 @@ internal object RootAdbManager {
                   sleep 1
                 done
                 if [ "$valid" != 1 ] || [ "$invalid" = 1 ]; then
+                  rollback
+                  echo "Refused: cannot prove ADB listens only on loopback"
+                  exit 21
+                fi
+                echo "ROOT_ADB_LOOPBACK_OK"
+            }OLD_LISTEN"
+                  setprop service.adb.tcp.port "${'OLD_TCP"
+                  stop adbd
+                  start adbd
+                }
+                setprop service.adb.listen_addrs tcp:localhost:5555 || exit 18
+                setprop service.adb.tcp.port 0 || { rollback; exit 18; }
+                stop adbd || { rollback; exit 19; }
+                start adbd || { rollback; exit 19; }
+                if [ "$(getprop service.adb.listen_addrs)" != "tcp:localhost:5555" ]; then
+                  rollback
+                  echo "One UI ignored loopback-only ADB property"
+                  exit 20
+                fi
+                i=0
+                valid=0
+                while [ "$i" -lt 10 ]; do
+                  i=$((i+1))
+                  found=0
+                  invalid=0
+                  for table in /proc/net/tcp /proc/net/tcp6; do
+                    [ -r "$table" ] || continue
+                    while read sl addr remote st rest; do
+                      case "$addr" in
+                        *:15B3)
+                          if [ "$st" = "0A" ]; then
+                            case "$addr" in
+                              0100007F:15B3|00000000000000000000000001000000:15B3) found=1 ;;
+                              *) invalid=1 ;;
+                            esac
+                          fi
+                        ;;
+                      esac
+                    done < "$table"
+                  done
+                  if [ "$invalid" = 1 ]; then break; fi
+                  if [ "$found" = 1 ]; then valid=1; break; fi
+                  sleep 1
+                done
+                if [ "$valid" != 1 ] || [ "$invalid" = 1 ]; then
+                  rollback
+                  echo "Refused: cannot prove ADB listens only on loopback"
+                  exit 21
+                fi
+                echo "ROOT_ADB_LOOPBACK_OK"
+            }OLD_TCP"
+                  stop adbd
+                  start adbd
+                }
+                setprop service.adb.listen_addrs tcp:localhost:5555 || exit 18
+                setprop service.adb.tcp.port 0 || { rollback; exit 18; }
+                stop adbd || { rollback; exit 19; }
+                start adbd || { rollback; exit 19; }
+                if [ "$(getprop service.adb.listen_addrs)" != "tcp:localhost:5555" ]; then
+                  rollback
+                  echo "One UI ignored loopback-only ADB property"
+                  exit 20
+                fi
+                i=0
+                valid=0
+                while [ "${'i" -lt 10 ]; do
+                  i=$((i+1))
+                  found=0
+                  invalid=0
+                  for table in /proc/net/tcp /proc/net/tcp6; do
+                    [ -r "$table" ] || continue
+                    while read sl addr remote st rest; do
+                      case "$addr" in
+                        *:15B3)
+                          if [ "$st" = "0A" ]; then
+                            case "$addr" in
+                              0100007F:15B3|00000000000000000000000001000000:15B3) found=1 ;;
+                              *) invalid=1 ;;
+                            esac
+                          fi
+                        ;;
+                      esac
+                    done < "$table"
+                  done
+                  if [ "$invalid" = 1 ]; then break; fi
+                  if [ "$found" = 1 ]; then valid=1; break; fi
+                  sleep 1
+                done
+                if [ "$valid" != 1 ] || [ "$invalid" = 1 ]; then
+                  rollback
+                  echo "Refused: cannot prove ADB listens only on loopback"
+                  exit 21
+                fi
+                echo "ROOT_ADB_LOOPBACK_OK"
+            }i" -lt 10 ]; do
+                  i=$((i+1))
+                  found=0
+                  invalid=0
+                  for table in /proc/net/tcp /proc/net/tcp6; do
+                    [ -r "${'table" ] || continue
+                    while read sl addr remote st rest; do
+                      case "$addr" in
+                        *:15B3)
+                          if [ "$st" = "0A" ]; then
+                            case "$addr" in
+                              0100007F:15B3|00000000000000000000000001000000:15B3) found=1 ;;
+                              *) invalid=1 ;;
+                            esac
+                          fi
+                        ;;
+                      esac
+                    done < "$table"
+                  done
+                  if [ "$invalid" = 1 ]; then break; fi
+                  if [ "$found" = 1 ]; then valid=1; break; fi
+                  sleep 1
+                done
+                if [ "$valid" != 1 ] || [ "$invalid" = 1 ]; then
+                  rollback
+                  echo "Refused: cannot prove ADB listens only on loopback"
+                  exit 21
+                fi
+                echo "ROOT_ADB_LOOPBACK_OK"
+            }table" ] || continue
+                    while read sl addr remote st rest; do
+                      case "${'addr" in
+                        *:15B3)
+                          if [ "$st" = "0A" ]; then
+                            case "$addr" in
+                              0100007F:15B3|00000000000000000000000001000000:15B3) found=1 ;;
+                              *) invalid=1 ;;
+                            esac
+                          fi
+                        ;;
+                      esac
+                    done < "$table"
+                  done
+                  if [ "$invalid" = 1 ]; then break; fi
+                  if [ "$found" = 1 ]; then valid=1; break; fi
+                  sleep 1
+                done
+                if [ "$valid" != 1 ] || [ "$invalid" = 1 ]; then
+                  rollback
+                  echo "Refused: cannot prove ADB listens only on loopback"
+                  exit 21
+                fi
+                echo "ROOT_ADB_LOOPBACK_OK"
+            }addr" in
+                        *:15B3)
+                          if [ "${'st" = "0A" ]; then
+                            case "$addr" in
+                              0100007F:15B3|00000000000000000000000001000000:15B3) found=1 ;;
+                              *) invalid=1 ;;
+                            esac
+                          fi
+                        ;;
+                      esac
+                    done < "$table"
+                  done
+                  if [ "$invalid" = 1 ]; then break; fi
+                  if [ "$found" = 1 ]; then valid=1; break; fi
+                  sleep 1
+                done
+                if [ "$valid" != 1 ] || [ "$invalid" = 1 ]; then
+                  rollback
+                  echo "Refused: cannot prove ADB listens only on loopback"
+                  exit 21
+                fi
+                echo "ROOT_ADB_LOOPBACK_OK"
+            }st" = "0A" ]; then
+                            case "${'addr" in
+                              0100007F:15B3|00000000000000000000000001000000:15B3) found=1 ;;
+                              *) invalid=1 ;;
+                            esac
+                          fi
+                        ;;
+                      esac
+                    done < "$table"
+                  done
+                  if [ "$invalid" = 1 ]; then break; fi
+                  if [ "$found" = 1 ]; then valid=1; break; fi
+                  sleep 1
+                done
+                if [ "$valid" != 1 ] || [ "$invalid" = 1 ]; then
+                  rollback
+                  echo "Refused: cannot prove ADB listens only on loopback"
+                  exit 21
+                fi
+                echo "ROOT_ADB_LOOPBACK_OK"
+            }addr" in
+                              0100007F:15B3|00000000000000000000000001000000:15B3) found=1 ;;
+                              *) invalid=1 ;;
+                            esac
+                          fi
+                        ;;
+                      esac
+                    done < "${'table"
+                  done
+                  if [ "$invalid" = 1 ]; then break; fi
+                  if [ "$found" = 1 ]; then valid=1; break; fi
+                  sleep 1
+                done
+                if [ "$valid" != 1 ] || [ "$invalid" = 1 ]; then
+                  rollback
+                  echo "Refused: cannot prove ADB listens only on loopback"
+                  exit 21
+                fi
+                echo "ROOT_ADB_LOOPBACK_OK"
+            }table"
+                  done
+                  if [ "${'invalid" = 1 ]; then break; fi
+                  if [ "$found" = 1 ]; then valid=1; break; fi
+                  sleep 1
+                done
+                if [ "$valid" != 1 ] || [ "$invalid" = 1 ]; then
+                  rollback
+                  echo "Refused: cannot prove ADB listens only on loopback"
+                  exit 21
+                fi
+                echo "ROOT_ADB_LOOPBACK_OK"
+            }invalid" = 1 ]; then break; fi
+                  if [ "${'found" = 1 ]; then valid=1; break; fi
+                  sleep 1
+                done
+                if [ "$valid" != 1 ] || [ "$invalid" = 1 ]; then
+                  rollback
+                  echo "Refused: cannot prove ADB listens only on loopback"
+                  exit 21
+                fi
+                echo "ROOT_ADB_LOOPBACK_OK"
+            }found" = 1 ]; then valid=1; break; fi
+                  sleep 1
+                done
+                if [ "${'valid" != 1 ] || [ "$invalid" = 1 ]; then
+                  rollback
+                  echo "Refused: cannot prove ADB listens only on loopback"
+                  exit 21
+                fi
+                echo "ROOT_ADB_LOOPBACK_OK"
+            }valid" != 1 ] || [ "${'invalid" = 1 ]; then
+                  rollback
+                  echo "Refused: cannot prove ADB listens only on loopback"
+                  exit 21
+                fi
+                echo "ROOT_ADB_LOOPBACK_OK"
+            }invalid" = 1 ]; then
                   rollback
                   echo "Refused: cannot prove ADB listens only on loopback"
                   exit 21
