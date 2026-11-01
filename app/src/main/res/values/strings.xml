@@ -547,4 +547,7 @@
     <string name="artemis_bridge_note">Enable Developer options → Wireless debugging on Android. Enter the device debugging port and temporary pairing port here. ADB pairing with ARTEMIS on the VPS is a separate authorization step. Restart MCP after changing ports. Full ARTEMIS requires pairing.</string>
     <string name="artemis_bridge_adb_port">Wireless debugging ADB port</string>
     <string name="artemis_bridge_pairing_port">ADB pairing port (optional)</string>
+
+    <string name="artemis_root_adb_toggle">ADB with root (Samsung / One UI)</string>
+    <string name="artemis_root_adb_note">Starting MCP will request su and attempt to bind ADB strictly to 127.0.0.1:5555. If the firmware does not support it, the operation will fail closed. Initial Artemis ADB host authorization on VPS is still required.</string>
 </resources>
