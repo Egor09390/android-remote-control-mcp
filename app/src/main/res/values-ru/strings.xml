@@ -481,4 +481,9 @@
     <string name="selfhost_fingerprint">Отпечаток ключа SSH SHA256</string>
     <string name="selfhost_install">Проверить и восстановить VPS</string>
     <string name="selfhost_note">Пароль не сохраняется. Сверяйте отпечаток SSH-ключа сервера. Нужны Docker, Compose и домен, указывающий на VPS.</string>
+
+    <string name="chatgpt_connector_title">Подключение ChatGPT через MCP</string>
+    <string name="chatgpt_connector_copy_url">Скопировать ссылку для коннектора</string>
+    <string name="chatgpt_connector_not_ready">Включите сервер MCP и подключите HTTPS-туннель к вашему VPS. Когда соединение установится, здесь появится ссылка для ChatGPT. Локальный адрес 127.0.0.1 не подходит.</string>
+    <string name="chatgpt_connector_security_note">Вставьте ссылку в ChatGPT → Плагины → Добавить пользовательский MCP-сервер. Для управления устройством также нужны разрешение специальных возможностей, поддерживаемая подписка ChatGPT и авторизация MCP.</string>
 </resources>
