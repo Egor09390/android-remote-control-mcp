@@ -423,6 +423,13 @@ class MainViewModel
             }
         }
 
+        fun updateArtemisPorts(adbPort: Int, pairingPort: Int) {
+            viewModelScope.launch(ioDispatcher) {
+                settingsRepository.updateArtemisAdbPort(adbPort)
+                settingsRepository.updateArtemisPairingPort(pairingPort)
+            }
+        }
+
         fun updateSelfHostedTunnelUrl(url: String) {
             _selfHostedUrlInput.value = url
             viewModelScope.launch(ioDispatcher) { settingsRepository.updateSelfHostedTunnelUrl(url) }
