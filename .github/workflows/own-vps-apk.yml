@@ -131,7 +131,7 @@ jobs:
           test "$(find release-assets -maxdepth 1 -name '*.apk' | wc -l)" -eq 1
           APKSIGNER="$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -1)"
           test -n "$APKSIGNER"
-          "$APKSIGNER" verify "release-assets/android-remote-control-mcp-ru-gms-release.apk"
+          "$APKSIGNER" verify "release-assets/android-remote-control-mcp-own-vps-gms-test.apk"
           ls -lh release-assets/
 
       - name: Upload Russian GMS APK to Actions artifacts
