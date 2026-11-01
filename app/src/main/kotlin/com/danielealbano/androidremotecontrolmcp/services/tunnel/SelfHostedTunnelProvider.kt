@@ -56,6 +56,7 @@ class SelfHostedTunnelProvider @Inject constructor() : TunnelProvider {
     private var port = 8080
     private var retries = 0
     private var reconnectJob: Job? = null
+    private val artemisBridges = mutableListOf<ArtemisAdbBridge>()
 
     override suspend fun start(localPort: Int, config: ServerConfig) {
         mutex.withLock {
@@ -80,6 +81,18 @@ class SelfHostedTunnelProvider @Inject constructor() : TunnelProvider {
             retries = 0
             state.value = TunnelStatus.Connecting
             connect()
+            // Start a distinct outbound binary tunnel for the official Artemis ADB backend.
+            // Port 0 disables a bridge. Enabling the port alone cannot grant ADB permissions.
+            if (config.artemisAdbPort in 1..65535) {
+                ArtemisAdbBridge(
+                    websocketClient, scope, baseUrl, secret, config.artemisAdbPort, "/adb/device",
+                ).also { artemisBridges.add(it); it.start() }
+            }
+            if (config.artemisPairingPort in 1..65535) {
+                ArtemisAdbBridge(
+                    websocketClient, scope, baseUrl, secret, config.artemisPairingPort, "/adb/pair",
+                ).also { artemisBridges.add(it); it.start() }
+            }
         }
     }
 
@@ -181,6 +194,8 @@ class SelfHostedTunnelProvider @Inject constructor() : TunnelProvider {
         mutex.withLock {
             stopped = true
             reconnectJob?.cancel()
+            artemisBridges.forEach { it.stop() }
+            artemisBridges.clear()
             socket?.cancel()
             socket = null
             state.value = TunnelStatus.Disconnected
