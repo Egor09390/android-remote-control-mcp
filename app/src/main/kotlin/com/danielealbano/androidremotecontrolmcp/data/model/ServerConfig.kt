@@ -72,6 +72,8 @@ data class ServerConfig(
     val artemisAdbPort: Int = 0,
     /** Temporary Wireless Debugging pairing port on this phone. */
     val artemisPairingPort: Int = 0,
+    /** User-opted-in root adbd transport, bound only to loopback. */
+    val artemisRootAdbEnabled: Boolean = false,
     val arcTunnelBaseAddress: String = DEFAULT_ARC_TUNNEL_BASE_ADDRESS,
     val arcTunnelCtCheckEnabled: Boolean = true,
     val arcTunnelEdgeOverride: String = "",
