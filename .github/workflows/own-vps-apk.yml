@@ -13,7 +13,7 @@ on:
       - 'gradle/**'
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: own-vps-android-apk
@@ -142,3 +142,36 @@ jobs:
           retention-days: 14
           if-no-files-found: error
 
+
+      - name: Automatically publish successful APK to the Own VPS GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > release-notes.txt <<EOF
+          Experimental Android APK with own VPS SSH setup on the first Server tab.
+
+          Build commit: $GITHUB_SHA
+          Build: https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID
+
+          Unverified on a real VPS. Verify the SSH host fingerprint before
+          entering server credentials. Signing key: $SIGNING_MODE.
+          Temporary signing keys do not support in-place upgrades from
+          previously signed builds; back up settings before reinstalling.
+          EOF
+          if gh release view own-vps-preview --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload own-vps-preview \
+              release-assets/android-remote-control-mcp-own-vps-gms-test.apk \
+              --clobber --repo "$GITHUB_REPOSITORY"
+            gh release edit own-vps-preview --repo "$GITHUB_REPOSITORY" \
+              --notes-file release-notes.txt \
+              --title "Own VPS Android APK (Preview)" --prerelease
+          else
+            gh release create own-vps-preview \
+              release-assets/android-remote-control-mcp-own-vps-gms-test.apk \
+              --repo "$GITHUB_REPOSITORY" \
+              --target "$GITHUB_SHA" \
+              --title "Own VPS Android APK (Preview)" \
+              --notes-file release-notes.txt --prerelease
+          fi
