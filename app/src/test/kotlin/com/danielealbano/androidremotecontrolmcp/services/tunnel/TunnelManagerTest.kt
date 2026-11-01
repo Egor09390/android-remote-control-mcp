@@ -29,6 +29,11 @@ import javax.inject.Provider
 class TunnelManagerTest {
     private val mockCloudflareProvider = mockk<CloudflareTunnelProvider>(relaxed = true)
     private val mockNgrokProvider = mockk<NgrokTunnelProvider>(relaxed = true)
+    private val mockSelfHostedProvider = mockk<SelfHostedTunnelProvider>(relaxed = true)
+    private val selfHostedFactory =
+        mockk<Provider<SelfHostedTunnelProvider>> {
+            every { get() } returns mockSelfHostedProvider
+        }
 
     private val cloudflareFactory =
         mockk<Provider<CloudflareTunnelProvider>> {
@@ -55,6 +60,7 @@ class TunnelManagerTest {
         TunnelManager(
             cloudflareTunnelProviderFactory = cloudflareFactory,
             ngrokTunnelProviderFactory = ngrokFactory,
+            selfHostedTunnelProviderFactory = selfHostedFactory,
             arcTunnelProviderFactory = arcFactory,
             serverLogRepository = serverLog,
         )
