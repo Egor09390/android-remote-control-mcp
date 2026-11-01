@@ -1,0 +1,59 @@
+name: Publish Own VPS APK to GitHub Releases
+
+on:
+  push:
+    branches:
+      - experiment/selfhost-android-apk
+    paths:
+      - '.github/workflows/publish-own-vps.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Fetch already verified signed Own VPS APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p release-assets
+          gh run download 41286946303 \
+            --repo "$GITHUB_REPOSITORY" \
+            --name android-remote-control-mcp-own-vps-gms-test \
+            --dir release-assets
+          test -s release-assets/android-remote-control-mcp-own-vps-gms-test.apk
+          sha256sum release-assets/android-remote-control-mcp-own-vps-gms-test.apk
+      - name: Publish dedicated prerelease, leaving stable Russian release intact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          cat > release-notes.txt <<'EOF'
+          Own VPS (experimental) APK with a VPS setup form on the first Server tab.
+
+          Source build: https://github.com/Egor09390/android-remote-control-mcp/actions/runs/41286946303
+          Source commit: fcaf2a65b89ac14b0748a347f18fa74cc1fb9cb2
+
+          This is not yet verified against a real VPS. Verify the SSH server
+          fingerprint before entering credentials. The APK may use a temporary
+          signing key and therefore may require uninstalling older builds
+          (back up settings and tokens first). No Cloudflare/ngrok is needed
+          for the owner-operated tunnel, but the VPS needs DNS and HTTPS.
+          EOF
+          gh release create own-vps-preview \
+            release-assets/android-remote-control-mcp-own-vps-gms-test.apk \
+            --repo "$GITHUB_REPOSITORY" \
+            --target fcaf2a65b89ac14b0748a347f18fa74cc1fb9cb2 \
+            --title "Own VPS Android APK (Preview)" \
+            --notes-file release-notes.txt \
+            --prerelease
+      - name: Print public release link
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release view own-vps-preview --repo "$GITHUB_REPOSITORY" --json url --jq .url
