@@ -423,6 +423,12 @@ class MainViewModel
             }
         }
 
+        fun updateArtemisRootAdb(enabled: Boolean) {
+            viewModelScope.launch(ioDispatcher) {
+                settingsRepository.updateArtemisRootAdbEnabled(enabled)
+            }
+        }
+
         fun updateArtemisPorts(adbPort: Int, pairingPort: Int) {
             viewModelScope.launch(ioDispatcher) {
                 settingsRepository.updateArtemisAdbPort(adbPort)
