@@ -101,8 +101,12 @@ func (b *adbTransport) phoneHandler(w http.ResponseWriter, r *http.Request) {
 func (b *adbTransport) serveTCP(address string) error {
     listener, err := net.Listen("tcp", address)
     if err != nil { return err }
+    return b.serveListener(listener)
+}
+
+func (b *adbTransport) serveListener(listener net.Listener) error {
     defer listener.Close()
-    log.Printf("Private Artemis ADB bridge listening on %s", address)
+    log.Printf("Private Artemis ADB bridge listening on %s", listener.Addr())
     for {
         tcp, err := listener.Accept()
         if err != nil { return err }
