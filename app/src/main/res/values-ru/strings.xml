@@ -467,4 +467,18 @@
         <item quantity="many">Выбрано %1$d приложений</item>
         <item quantity="other">Выбрано %1$d приложения</item>
     </plurals>
+
+    <string name="remote_access_provider_self_hosted">Свой VPS</string>
+    <string name="remote_access_provider_self_hosted_desc">Собственный туннель через ваш VPS, без облачных посредников</string>
+    <string name="remote_access_self_hosted_url_label">HTTPS-адрес VPS</string>
+    <string name="remote_access_self_hosted_token_label">Секрет туннеля</string>
+    <string name="selfhost_card_title">Мой VPS: автоматическая настройка</string>
+    <string name="selfhost_ip">IP-адрес VPS</string>
+    <string name="selfhost_port">SSH-порт</string>
+    <string name="selfhost_user">Логин SSH</string>
+    <string name="selfhost_password">Пароль SSH</string>
+    <string name="selfhost_domain">Домен MCP (DNS указывает на VPS)</string>
+    <string name="selfhost_fingerprint">Отпечаток ключа SSH SHA256</string>
+    <string name="selfhost_install">Проверить и восстановить VPS</string>
+    <string name="selfhost_note">Пароль не сохраняется. Сверяйте отпечаток SSH-ключа сервера. Нужны Docker, Compose и домен, указывающий на VPS.</string>
 </resources>
