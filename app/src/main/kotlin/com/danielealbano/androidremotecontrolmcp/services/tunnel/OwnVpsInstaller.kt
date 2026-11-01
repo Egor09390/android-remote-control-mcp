@@ -110,7 +110,14 @@ class OwnVpsInstaller(private val context: Context) {
                         Result("https://" + domain, tunnelSecret, result.takeLast(1500))
                     } finally {
                         cmd.disconnect()
-                        runCatching { sftp.rmdir(remoteDir) }
+                        // Do not leave the uploaded .env/tunnel secret in the staging area.
+                        runCatching {
+                            sftp.cd(home)
+                            sftp.cd(remoteDir)
+                            files.keys.forEach { sftp.rm(it) }
+                            sftp.cd(home)
+                            sftp.rmdir(remoteDir)
+                        }
                     }
                 } finally {
                     sftp.disconnect()
