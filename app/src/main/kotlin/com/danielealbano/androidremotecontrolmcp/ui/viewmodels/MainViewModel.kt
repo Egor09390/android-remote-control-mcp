@@ -410,6 +410,19 @@ class MainViewModel
             }
         }
 
+        /** Turn on owner-operated VPS tunnel after SSH installation, starting MCP if stopped. */
+        fun activateOwnVps(context: Context, baseUrl: String, secret: String) {
+            viewModelScope.launch(ioDispatcher) {
+                settingsRepository.updateSelfHostedTunnelUrl(baseUrl)
+                settingsRepository.updateSelfHostedTunnelToken(secret)
+                settingsRepository.updateTunnelProvider(TunnelProviderType.SELF_HOSTED)
+                settingsRepository.updateTunnelEnabled(true)
+                if (McpServerService.serverStatus.value is ServerStatus.Stopped) {
+                    startServer(context.applicationContext)
+                }
+            }
+        }
+
         fun updateSelfHostedTunnelUrl(url: String) {
             _selfHostedUrlInput.value = url
             viewModelScope.launch(ioDispatcher) { settingsRepository.updateSelfHostedTunnelUrl(url) }
