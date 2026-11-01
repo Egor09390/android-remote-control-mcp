@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - experiment/selfhost-go-build
+      - experiment/selfhost-android-apk
     paths:
       - '.github/workflows/selfhost-go.yml'
       - 'selfhost/**'
