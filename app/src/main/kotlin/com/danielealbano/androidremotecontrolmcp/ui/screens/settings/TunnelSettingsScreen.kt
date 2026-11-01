@@ -87,6 +87,8 @@ fun TunnelSettingsScreen(
     val ngrokDomainInput by viewModel.ngrokDomainInput.collectAsStateWithLifecycle()
     val cloudflareTokenInput by viewModel.cloudflareTokenInput.collectAsStateWithLifecycle()
     val cloudflareExtraArgsInput by viewModel.cloudflareExtraArgsInput.collectAsStateWithLifecycle()
+    val selfHostedUrlInput by viewModel.selfHostedUrlInput.collectAsStateWithLifecycle()
+    val selfHostedTokenInput by viewModel.selfHostedTokenInput.collectAsStateWithLifecycle()
     val tunnelLocalPortInput by viewModel.tunnelLocalPortInput.collectAsStateWithLifecycle()
     val tunnelLocalPortError by viewModel.tunnelLocalPortError.collectAsStateWithLifecycle()
     val listenerCheck by viewModel.listenerCheck.collectAsStateWithLifecycle()
@@ -243,6 +245,19 @@ fun TunnelSettingsScreen(
                 }
             }
 
+            AnimatedVisibility(visible = serverConfig.tunnelProvider == TunnelProviderType.SELF_HOSTED) {
+                Column {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OwnVpsConfigFields(
+                        url = selfHostedUrlInput,
+                        token = selfHostedTokenInput,
+                        enabled = isEnabled,
+                        onUrlChange = viewModel::updateSelfHostedTunnelUrl,
+                        onTokenChange = viewModel::updateSelfHostedTunnelToken,
+                    )
+                }
+            }
+
             // ngrok-specific fields
             AnimatedVisibility(visible = serverConfig.tunnelProvider == TunnelProviderType.NGROK) {
                 Column {
@@ -320,6 +335,7 @@ private fun providerTitle(provider: TunnelProviderType): String =
         TunnelProviderType.ARC_TUNNEL -> stringResource(R.string.remote_access_provider_arc_tunnel)
         TunnelProviderType.CLOUDFLARE -> stringResource(R.string.remote_access_provider_cloudflare)
         TunnelProviderType.NGROK -> stringResource(R.string.remote_access_provider_ngrok)
+        TunnelProviderType.SELF_HOSTED -> stringResource(R.string.remote_access_provider_self_hosted)
     }
 
 @Composable
@@ -328,7 +344,38 @@ private fun providerDescription(provider: TunnelProviderType): String =
         TunnelProviderType.ARC_TUNNEL -> stringResource(R.string.remote_access_provider_arc_tunnel_desc)
         TunnelProviderType.CLOUDFLARE -> stringResource(R.string.remote_access_provider_cloudflare_desc)
         TunnelProviderType.NGROK -> stringResource(R.string.remote_access_provider_ngrok_desc)
+        TunnelProviderType.SELF_HOSTED -> stringResource(R.string.remote_access_provider_self_hosted_desc)
     }
+
+@Composable
+private fun OwnVpsConfigFields(
+    url: String,
+    token: String,
+    enabled: Boolean,
+    onUrlChange: (String) -> Unit,
+    onTokenChange: (String) -> Unit,
+) {
+    Column {
+        OutlinedTextField(
+            value = url,
+            onValueChange = onUrlChange,
+            label = { Text(stringResource(R.string.remote_access_self_hosted_url_label)) },
+            singleLine = true,
+            enabled = enabled,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        OutlinedTextField(
+            value = token,
+            onValueChange = onTokenChange,
+            label = { Text(stringResource(R.string.remote_access_self_hosted_token_label)) },
+            singleLine = true,
+            enabled = enabled,
+            visualTransformation = PasswordVisualTransformation(),
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
+}
 
 @Composable
 private fun NgrokConfigFields(
