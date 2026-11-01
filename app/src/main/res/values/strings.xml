@@ -542,4 +542,9 @@
     <string name="chatgpt_connector_copy_url">Copy MCP connector URL</string>
     <string name="chatgpt_connector_not_ready">Start the MCP server and connect an HTTPS tunnel to your VPS. This field will then show the public ChatGPT URL. The local 127.0.0.1 address cannot work remotely.</string>
     <string name="chatgpt_connector_security_note">Paste this into ChatGPT → Plugins → Add custom MCP server. Phone control also requires the Android Accessibility permission, a supported ChatGPT plan, and MCP authentication.</string>
+
+    <string name="artemis_bridge_title">ARTEMIS: ADB bridge to VPS</string>
+    <string name="artemis_bridge_note">Enable Developer options → Wireless debugging on Android. Enter the device debugging port and temporary pairing port here. ADB pairing with ARTEMIS on the VPS is a separate authorization step. Restart MCP after changing ports. Full ARTEMIS requires pairing.</string>
+    <string name="artemis_bridge_adb_port">Wireless debugging ADB port</string>
+    <string name="artemis_bridge_pairing_port">ADB pairing port (optional)</string>
 </resources>
