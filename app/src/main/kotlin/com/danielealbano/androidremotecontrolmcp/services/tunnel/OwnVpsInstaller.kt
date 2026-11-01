@@ -48,7 +48,7 @@ class OwnVpsInstaller(private val context: Context) {
             val tunnelSecret = previousSecret.takeIf { it.matches(Regex("^[a-f0-9]{64}$")) }
                 ?: freshSecret()
             val files = linkedMapOf<String, ByteArray>()
-            for (name in listOf("main.go", "go.mod", "go.sum", "Dockerfile",
+            for (name in listOf("main.go", "adb_bridge.go", "go.mod", "go.sum", "Dockerfile",
                     "docker-compose.yml", "Caddyfile", "android-install.sh")) {
                 files[name] = context.assets.open(name).use { it.readBytes() }
             }
