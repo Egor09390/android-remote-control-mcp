@@ -127,6 +127,7 @@ fun ServerScreen(
             OwnVpsSetupCard(
                 config = serverConfig,
                 onArtemisPortsChanged = viewModel::updateArtemisPorts,
+                onRootAdbChanged = viewModel::updateArtemisRootAdb,
                 onConfigured = { baseUrl, secret ->
                     viewModel.activateOwnVps(context, baseUrl, secret)
                 },
