@@ -491,4 +491,7 @@
     <string name="artemis_bridge_note">В настройках Android включите «Для разработчиков» → «Беспроводная отладка». Порт устройства и временный порт сопряжения вводятся здесь. Сопряжение ADB с ARTEMIS на VPS выполняется отдельно. После изменения портов перезапустите MCP. Без сопряжения полноценный ARTEMIS недоступен.</string>
     <string name="artemis_bridge_adb_port">Порт беспроводной отладки ADB</string>
     <string name="artemis_bridge_pairing_port">Порт сопряжения ADB (необязательно)</string>
+
+    <string name="artemis_root_adb_toggle">ADB через root (Samsung / One UI)</string>
+    <string name="artemis_root_adb_note">После включения MCP приложение запросит разрешение su и попытается открыть ADB только на 127.0.0.1:5555. Если это не поддерживается прошивкой, операция завершится отказом. Первая авторизация ADB для Artemis на VPS по-прежнему необходима.</string>
 </resources>
