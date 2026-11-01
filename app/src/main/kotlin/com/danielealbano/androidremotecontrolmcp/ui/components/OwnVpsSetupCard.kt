@@ -5,11 +5,13 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Switch
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -19,6 +21,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -36,6 +39,7 @@ fun OwnVpsSetupCard(
     config: ServerConfig,
     onConfigured: (String, String) -> Unit,
     onArtemisPortsChanged: (Int, Int) -> Unit,
+    onRootAdbChanged: (Boolean) -> Unit,
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -47,6 +51,9 @@ fun OwnVpsSetupCard(
     var fingerprint by remember { mutableStateOf("") }
     var adbPort by remember(config.artemisAdbPort) {
         mutableStateOf(config.artemisAdbPort.takeIf { it > 0 }?.toString().orEmpty())
+    }
+    var rootAdbEnabled by remember(config.artemisRootAdbEnabled) {
+        mutableStateOf(config.artemisRootAdbEnabled)
     }
     var pairingPort by remember(config.artemisPairingPort) {
         mutableStateOf(config.artemisPairingPort.takeIf { it > 0 }?.toString().orEmpty())
@@ -118,8 +125,28 @@ fun OwnVpsSetupCard(
                 text = stringResource(R.string.artemis_bridge_note),
                 style = MaterialTheme.typography.bodySmall,
             )
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    text = stringResource(R.string.artemis_root_adb_toggle),
+                    modifier = Modifier.weight(1f),
+                )
+                Switch(
+                    checked = rootAdbEnabled,
+                    onCheckedChange = {
+                        rootAdbEnabled = it
+                        onRootAdbChanged(it)
+                    },
+                    enabled = !busy,
+                )
+            }
+            if (rootAdbEnabled) {
+                Text(
+                    text = stringResource(R.string.artemis_root_adb_note),
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
             OutlinedTextField(
-                value = adbPort,
+                value = if (rootAdbEnabled) "5555" else adbPort,
                 onValueChange = {
                     if (it.length <= 5 && it.all(Char::isDigit)) {
                         adbPort = it
@@ -128,7 +155,7 @@ fun OwnVpsSetupCard(
                 },
                 label = { Text(stringResource(R.string.artemis_bridge_adb_port)) },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                singleLine = true, enabled = !busy, modifier = Modifier.fillMaxWidth(),
+                singleLine = true, enabled = !busy && !rootAdbEnabled, modifier = Modifier.fillMaxWidth(),
             )
             OutlinedTextField(
                 value = pairingPort,
