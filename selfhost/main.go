@@ -137,7 +137,14 @@ func main(){
  s,err:=newServer(os.Getenv("MCP_TUNNEL_TOKEN"));if err!=nil{log.Fatal(err)}
 
  mux:=http.NewServeMux()
- mux.HandleFunc("/agent",s.connect);mux.HandleFunc("/",s.forward)
+ mux.HandleFunc("/agent",s.connect)
+ adbDevice:=&adbTransport{auth:s.auth}
+ adbPair:=&adbTransport{auth:s.auth}
+ mux.HandleFunc("/adb/device",adbDevice.phoneHandler)
+ mux.HandleFunc("/adb/pair",adbPair.phoneHandler)
+ go func(){if err:=adbDevice.serveTCP(":15555");err!=nil{log.Printf("ADB bridge failed: %v",err)}}()
+ go func(){if err:=adbPair.serveTCP(":15556");err!=nil{log.Printf("ADB pairing bridge failed: %v",err)}}()
+ mux.HandleFunc("/",s.forward)
  server:=&http.Server{Addr:*listen,Handler:mux,ReadHeaderTimeout:10*time.Second,
   IdleTimeout:120*time.Second,MaxHeaderBytes:1<<20}
  fmt.Printf("MCP relay listening on %s\n",*listen)
