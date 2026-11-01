@@ -194,6 +194,10 @@ interface SettingsRepository :
     /** Updates the optional extra command-line arguments for Cloudflare tunnel. */
     suspend fun updateCloudflareTunnelExtraArgs(extraArgs: String)
 
+    suspend fun updateSelfHostedTunnelUrl(url: String)
+
+    suspend fun updateSelfHostedTunnelToken(token: String)
+
     /** Updates the file size limit for file operations (in MB). */
     suspend fun updateFileSizeLimit(limitMb: Int)
 
