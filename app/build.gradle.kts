@@ -257,6 +257,10 @@ android {
             isMinifyEnabled = false
         }
         release {
+            // Separate app identity for experimental APKs to avoid uninstalling the user's working release.
+            if (project.hasProperty("OWN_VPS_TEST_APK")) {
+                applicationIdSuffix = ".ownvps"
+            }
             isDebuggable = false
             isMinifyEnabled = false
             proguardFiles(
