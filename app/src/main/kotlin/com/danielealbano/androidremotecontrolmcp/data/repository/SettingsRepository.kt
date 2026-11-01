@@ -198,6 +198,10 @@ interface SettingsRepository :
 
     suspend fun updateSelfHostedTunnelToken(token: String)
 
+    suspend fun updateArtemisAdbPort(port: Int)
+
+    suspend fun updateArtemisPairingPort(port: Int)
+
     /** Updates the file size limit for file operations (in MB). */
     suspend fun updateFileSizeLimit(limitMb: Int)
 
