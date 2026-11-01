@@ -202,6 +202,8 @@ interface SettingsRepository :
 
     suspend fun updateArtemisPairingPort(port: Int)
 
+    suspend fun updateArtemisRootAdbEnabled(enabled: Boolean)
+
     /** Updates the file size limit for file operations (in MB). */
     suspend fun updateFileSizeLimit(limitMb: Int)
 
