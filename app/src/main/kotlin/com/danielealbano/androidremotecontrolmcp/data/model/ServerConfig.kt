@@ -68,6 +68,10 @@ data class ServerConfig(
     val cloudflareTunnelExtraArgs: String = "",
     val selfHostedTunnelUrl: String = "",
     val selfHostedTunnelToken: String = "",
+    /** Wireless Debugging TLS port on this phone; requires prior Android pairing. */
+    val artemisAdbPort: Int = 0,
+    /** Temporary Wireless Debugging pairing port on this phone. */
+    val artemisPairingPort: Int = 0,
     val arcTunnelBaseAddress: String = DEFAULT_ARC_TUNNEL_BASE_ADDRESS,
     val arcTunnelCtCheckEnabled: Boolean = true,
     val arcTunnelEdgeOverride: String = "",
