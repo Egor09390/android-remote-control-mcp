@@ -537,4 +537,9 @@
     <string name="selfhost_fingerprint">SSH host key SHA256 fingerprint</string>
     <string name="selfhost_install">Audit and restore VPS</string>
     <string name="selfhost_note">The password is never saved. Verify the server SSH host key fingerprint. Requires Docker, Compose and a domain pointed at the VPS.</string>
+
+    <string name="chatgpt_connector_title">Connect ChatGPT via MCP</string>
+    <string name="chatgpt_connector_copy_url">Copy MCP connector URL</string>
+    <string name="chatgpt_connector_not_ready">Start the MCP server and connect an HTTPS tunnel to your VPS. This field will then show the public ChatGPT URL. The local 127.0.0.1 address cannot work remotely.</string>
+    <string name="chatgpt_connector_security_note">Paste this into ChatGPT → Plugins → Add custom MCP server. Phone control also requires the Android Accessibility permission, a supported ChatGPT plan, and MCP authentication.</string>
 </resources>
