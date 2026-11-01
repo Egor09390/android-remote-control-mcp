@@ -35,6 +35,7 @@ import kotlinx.coroutines.launch
 fun OwnVpsSetupCard(
     config: ServerConfig,
     onConfigured: (String, String) -> Unit,
+    onArtemisPortsChanged: (Int, Int) -> Unit,
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -44,6 +45,12 @@ fun OwnVpsSetupCard(
     var password by remember { mutableStateOf("") }
     var domain by remember { mutableStateOf("") }
     var fingerprint by remember { mutableStateOf("") }
+    var adbPort by remember(config.artemisAdbPort) {
+        mutableStateOf(config.artemisAdbPort.takeIf { it > 0 }?.toString().orEmpty())
+    }
+    var pairingPort by remember(config.artemisPairingPort) {
+        mutableStateOf(config.artemisPairingPort.takeIf { it > 0 }?.toString().orEmpty())
+    }
     var busy by remember { mutableStateOf(false) }
     var result by remember { mutableStateOf("") }
 
@@ -101,6 +108,39 @@ fun OwnVpsSetupCard(
                 placeholder = { Text("SHA256:...") },
                 singleLine = true, enabled = !busy,
                 modifier = Modifier.fillMaxWidth(),
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = stringResource(R.string.artemis_bridge_title),
+                style = MaterialTheme.typography.titleMedium,
+            )
+            Text(
+                text = stringResource(R.string.artemis_bridge_note),
+                style = MaterialTheme.typography.bodySmall,
+            )
+            OutlinedTextField(
+                value = adbPort,
+                onValueChange = {
+                    if (it.length <= 5 && it.all(Char::isDigit)) {
+                        adbPort = it
+                        onArtemisPortsChanged(it.toIntOrNull() ?: 0, pairingPort.toIntOrNull() ?: 0)
+                    }
+                },
+                label = { Text(stringResource(R.string.artemis_bridge_adb_port)) },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                singleLine = true, enabled = !busy, modifier = Modifier.fillMaxWidth(),
+            )
+            OutlinedTextField(
+                value = pairingPort,
+                onValueChange = {
+                    if (it.length <= 5 && it.all(Char::isDigit)) {
+                        pairingPort = it
+                        onArtemisPortsChanged(adbPort.toIntOrNull() ?: 0, it.toIntOrNull() ?: 0)
+                    }
+                },
+                label = { Text(stringResource(R.string.artemis_bridge_pairing_port)) },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                singleLine = true, enabled = !busy, modifier = Modifier.fillMaxWidth(),
             )
             Spacer(Modifier.height(10.dp))
             Button(
