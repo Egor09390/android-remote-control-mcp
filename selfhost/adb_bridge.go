@@ -18,6 +18,7 @@ type adbTransport struct {
     mu sync.Mutex
     phone *websocket.Conn
     tcp net.Conn
+    ready chan struct{}
     writeMu sync.Mutex
 }
 
@@ -45,6 +46,7 @@ func (b *adbTransport) phoneHandler(w http.ResponseWriter, r *http.Request) {
     oldTCP := b.tcp
     b.phone = ws
     b.tcp = nil
+    b.ready = nil
     b.mu.Unlock()
     if previous != nil { _ = previous.Close() }
     if oldTCP != nil { _ = oldTCP.Close() }
@@ -74,6 +76,15 @@ func (b *adbTransport) phoneHandler(w http.ResponseWriter, r *http.Request) {
         kind, bytes, err := ws.ReadMessage()
         if err != nil { return }
         _ = ws.SetReadDeadline(time.Now().Add(120*time.Second))
+        if kind == websocket.TextMessage && string(bytes) == "ready" {
+            b.mu.Lock()
+            if b.phone == ws && b.ready != nil {
+                close(b.ready)
+                b.ready = nil
+            }
+            b.mu.Unlock()
+            continue
+        }
         if kind != websocket.BinaryMessage { continue }
         b.mu.Lock()
         tcp := b.tcp
@@ -108,16 +119,25 @@ func (b *adbTransport) handleTCP(tcp net.Conn) {
         return
     }
     b.tcp = tcp
+    ready := make(chan struct{})
+    b.ready = ready
     b.mu.Unlock()
     defer func() {
         _ = tcp.Close()
         b.mu.Lock()
-        if b.tcp == tcp { b.tcp = nil }
+        if b.tcp == tcp { b.tcp = nil; b.ready = nil }
         b.mu.Unlock()
         _ = b.sendMessage(ws, websocket.TextMessage, []byte("close"))
     }()
 
     if err := b.sendMessage(ws, websocket.TextMessage, []byte("open")); err != nil { return }
+    // Never forward ADB bytes until the Android app confirms its local ADB socket is connected.
+    select {
+    case <-ready:
+    case <-time.After(10*time.Second):
+        log.Printf("Artemis local ADB connection did not become ready")
+        return
+    }
     buffer := make([]byte, 16*1024)
     for {
         count, err := tcp.Read(buffer)
