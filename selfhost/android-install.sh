@@ -7,6 +7,11 @@ export DEBIAN_FRONTEND=noninteractive
 die() { echo "ERROR: $*" >&2; exit 1; }
 STAGE="$(cd "$(dirname "$0")" && pwd)"
 TARGET="$HOME/.local/share/android-mcp-own-vps"
+case "$STAGE" in
+ "$HOME"/.android-mcp-staging-*) ;;
+ *) die "Unsafe staging location" ;;
+esac
+trap 'rm -rf -- "$STAGE"' EXIT
 FILES=(main.go go.mod go.sum Dockerfile docker-compose.yml Caddyfile .env android-install.sh)
 [[ -n "$HOME" && "$HOME" != "/" ]] || die "Unsafe home directory"
 [[ ! -L "$TARGET" ]] || die "Managed target must not be a symlink"
@@ -33,7 +38,9 @@ if [[ ! -d "$TARGET" ]]; then
  MATCH=0
 else
  [[ "$(cat "$TARGET/.android-mcp-managed")" == "own-vps-v1" ]] || MATCH=0
+ cmp -s "$STAGE/.manifest" "$TARGET/.manifest" || MATCH=0
  for file in "${FILES[@]}"; do
+   [[ -L "$TARGET/$file" ]] && MATCH=0
    cmp -s "$STAGE/$file" "$TARGET/$file" || MATCH=0
  done
  while IFS= read -r found; do
