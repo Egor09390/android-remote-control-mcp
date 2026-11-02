@@ -1,5 +1,9 @@
 package com.danielealbano.androidremotecontrolmcp.ui
 
+import com.danielealbano.androidremotecontrolmcp.BuildConfig
+import com.danielealbano.androidremotecontrolmcp.personal.PersonalDashboard
+import com.danielealbano.androidremotecontrolmcp.personal.PersonalSetup
+import javax.inject.Inject
 import android.Manifest
 import android.net.ConnectivityManager
 import android.os.Bundle
@@ -24,6 +28,7 @@ import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+    @Inject lateinit var personalSetup: PersonalSetup
     private val viewModel: MainViewModel by viewModels()
     private lateinit var notificationPermissionLauncher: ActivityResultLauncher<String>
     private lateinit var cameraPermissionLauncher: ActivityResultLauncher<String>
@@ -38,6 +43,10 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        if (BuildConfig.PERSONAL_BUILD) {
+            setContent { PersonalDashboard() }
+            return
+        }
         networkChanges =
             NetworkChangeWatcher(getSystemService(ConnectivityManager::class.java), Handler(Looper.getMainLooper())) {
                 viewModel.refreshListenerCheck()
@@ -95,17 +104,24 @@ class MainActivity : ComponentActivity() {
         super.onStart()
         // Opportunistic update check each time the app is brought to the foreground (throttled by
         // WorkManager's unique-work policy). Complements the periodic background check.
+        if (BuildConfig.PERSONAL_BUILD) return
         UpdateCheckScheduler.checkOnOpen(this)
         networkChanges.start()
     }
 
     override fun onStop() {
-        networkChanges.stop()
+        if (BuildConfig.PERSONAL_BUILD) {
+            personalSetup.scheduleBackup()
+        } else networkChanges.stop()
         super.onStop()
     }
 
     override fun onResume() {
         super.onResume()
+        if (BuildConfig.PERSONAL_BUILD) {
+            personalSetup.refresh()
+            return
+        }
         viewModel.refreshPermissionStatus(this)
         // The device's addresses may have changed meanwhile (the Specific IP must be one of them)
         viewModel.refreshListenerCheck()

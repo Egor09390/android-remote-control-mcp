@@ -1,5 +1,6 @@
 package com.danielealbano.androidremotecontrolmcp
 
+import com.danielealbano.androidremotecontrolmcp.personal.PersonalSetup
 import android.app.Application
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -21,6 +22,8 @@ import androidx.work.Configuration as WorkConfiguration
 class McpApplication :
     Application(),
     WorkConfiguration.Provider {
+    @Inject lateinit var personalSetup: PersonalSetup
+
     @Inject
     lateinit var appIconCache: AppIconCache
 
@@ -42,6 +45,11 @@ class McpApplication :
 
     override fun onCreate() {
         super.onCreate()
+        if (BuildConfig.PERSONAL_BUILD) {
+            createNotificationChannels()
+            personalSetup.initialize()
+            return
+        }
         // Flavor-specific one-time migrations (gms: geofence config → dedicated key), launched eagerly
         // on a background coroutine (non-blocking — must never stall onCreate). No-op in foss.
         runFlavorStartupMigrations(this)

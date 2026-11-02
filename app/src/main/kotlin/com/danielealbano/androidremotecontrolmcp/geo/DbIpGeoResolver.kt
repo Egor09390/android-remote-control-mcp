@@ -39,6 +39,7 @@ class DbIpGeoResolver
         internal var numericParser: (String) -> InetAddress? = { InetAddresses.parseNumericAddress(it) }
 
         override fun resolve(ip: String?): GeoLocation? {
+            if (BuildConfig.PERSONAL_BUILD) return null
             val address = parseNumeric(ip)?.takeUnless { isNonRoutable(it) } ?: return null
             return database()?.lookup(address)
         }

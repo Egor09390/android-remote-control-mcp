@@ -1,5 +1,7 @@
 package com.danielealbano.androidremotecontrolmcp.services.mcp
 
+import com.danielealbano.androidremotecontrolmcp.BuildConfig
+import com.danielealbano.androidremotecontrolmcp.personal.PersonalSetup
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -24,6 +26,7 @@ import javax.inject.Inject
  */
 @AndroidEntryPoint
 class BootCompletedReceiver : BroadcastReceiver() {
+    @Inject lateinit var personalSetup: PersonalSetup
     @Inject lateinit var settingsRepository: SettingsRepository
 
     @Suppress("TooGenericExceptionCaught")
@@ -41,6 +44,7 @@ class BootCompletedReceiver : BroadcastReceiver() {
         CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
             try {
                 withTimeout(SETTINGS_READ_TIMEOUT_MS) {
+                    if (BuildConfig.PERSONAL_BUILD) personalSetup.awaitReady()
                     val config = settingsRepository.serverConfig.first()
 
                     if (config.autoStartOnBoot) {

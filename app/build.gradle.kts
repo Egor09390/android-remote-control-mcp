@@ -212,11 +212,15 @@ configurations.matching { it.name.startsWith("ktlint") }.configureEach {
     }
 }
 
+val personalBuild = project.hasProperty("PERSONAL_BUILD")
+
 android {
     namespace = "com.danielealbano.androidremotecontrolmcp"
     compileSdk = 37
 
     defaultConfig {
+        buildConfigField("boolean", "PERSONAL_BUILD", personalBuild.toString())
+        if (personalBuild) ndk { abiFilters += "arm64-v8a" }
         applicationId = "com.danielealbano.androidremotecontrolmcp"
         minSdk = 33
         targetSdk = 34
@@ -284,7 +288,7 @@ android {
     }
 
     // Bundle only our VPS deployment components for verified SSH/SFTP upload.
-    sourceSets.getByName("main").assets.srcDir("../selfhost")
+    if (!personalBuild) sourceSets.getByName("main").assets.srcDir("../selfhost")
 
     testOptions {
         unitTests.isReturnDefaultValues = true
@@ -311,6 +315,10 @@ android {
         }
         jniLibs {
             useLegacyPackaging = true
+            if (personalBuild) {
+                excludes += "**/libcloudflared.so"
+                excludes += "**/libngrok_java.so"
+            }
         }
     }
 }
@@ -510,7 +518,7 @@ androidComponents {
     onVariants { variant ->
         // Registered as a generated assets source — the generation runs only for variants that package
         // assets (assemble/lint-vital), never for the unit-test path, which uses the committed fixture.
-        variant.sources.assets?.addGeneratedSourceDirectory(generateLocationDb, GenerateLocationDbTask::outputDir)
+        if (!personalBuild) variant.sources.assets?.addGeneratedSourceDirectory(generateLocationDb, GenerateLocationDbTask::outputDir)
     }
 }
 

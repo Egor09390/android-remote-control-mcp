@@ -1,4 +1,4 @@
-name: Build Android APK with CloudPub (GMS)
+name: Build personal S23 APK
 
 on:
   workflow_dispatch:
@@ -22,7 +22,7 @@ concurrency:
 
 jobs:
   build-and-release:
-    name: Build and verify CloudPub GMS APK
+    name: Verify and build personal ARM64 APK
     runs-on: ubuntu-latest
     timeout-minutes: 150
     env:
@@ -43,15 +43,8 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: '1.27.3'
-
-      - name: Set up Rust for Android
+      - name: Set up Rust for JVM test dependency
         uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: aarch64-linux-android,x86_64-linux-android
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -72,21 +65,6 @@ jobs:
             vendor/ngrok-java/ngrok-java/target/ngrok-java-1.2.0-SNAPSHOT.jar
             vendor/ngrok-java/ngrok-java-native/target/ngrok-java-native-classes.jar
           key: russian-native-v1-${{ hashFiles('.gitmodules', 'Makefile', 'vendor/cloudflared/go.sum', 'vendor/ngrok-java/ngrok-java-native/Cargo.lock') }}
-
-      - name: Build cloudflared Android libraries
-        run: |
-          if [ ! -f app/src/main/jniLibs/arm64-v8a/libcloudflared.so ] || [ ! -f app/src/main/jniLibs/x86_64/libcloudflared.so ]; then
-            make compile-cloudflared
-          fi
-
-      - name: Build ngrok Android libraries
-        env:
-          JAVA_11_HOME: ${{ env.JAVA_HOME }}
-          JAVA_17_HOME: ${{ env.JAVA_HOME }}
-        run: |
-          if [ ! -f app/src/main/jniLibs/arm64-v8a/libngrok_java.so ] || [ ! -f app/src/main/jniLibs/x86_64/libngrok_java.so ]; then
-            make compile-ngrok-native
-          fi
 
       - name: Restore host JNI dependencies for JVM tests
         id: cache-ngrok-host
@@ -110,9 +88,10 @@ jobs:
           (cd ngrok-java-native && cargo build --release)
           (cd ngrok-java-native/target/release && jar cf ../ngrok-java-native-host.jar libngrok_java.so)
 
-      - name: Test CloudPub parsing, configuration and tunnel routing
+      - name: Test root setup, restore and CloudPub routing
         run: >-
-          ./gradlew --no-daemon :app:testGmsDebugUnitTest
+          ./gradlew --no-daemon :app:testFossDebugUnitTest -PPERSONAL_BUILD=true
+          --tests '*PersonalSetupScriptsTest'
           --tests '*CloudPubTunnelProviderTest'
           --tests '*TunnelManagerTest'
           --tests '*TunnelProviderTypeTest'
@@ -124,7 +103,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: cloudpub-unit-test-reports
-          path: app/build/reports/tests/testGmsDebugUnitTest/
+          path: app/build/reports/tests/testFossDebugUnitTest/
           if-no-files-found: ignore
           retention-days: 14
 
@@ -162,71 +141,63 @@ jobs:
           } > keystore.properties
           chmod 600 keystore.properties "$KEYSTORE_FILE"
 
-      - name: Build Russian GMS release APK
-        run: ./gradlew --no-daemon assembleGmsRelease -POWN_VPS_TEST_APK=true
+      - name: Build personal S23 release APK
+        run: ./gradlew --no-daemon assembleFossRelease -POWN_VPS_TEST_APK=true -PPERSONAL_BUILD=true
 
-      - name: Collect and verify signed GMS release APK
+      - name: Verify personal APK signature and contents
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p release-assets
-          cp "app/build/outputs/apk/gms/release/app-gms-release.apk" \
-            "release-assets/android-remote-control-mcp-own-vps-gms-test.apk"
-          test "$(find release-assets -maxdepth 1 -name '*.apk' | wc -l)" -eq 1
+          cp app/build/outputs/apk/foss/release/app-foss-release.apk release-assets/android-remote-control-mcp-personal-s23.apk
           APKSIGNER="$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -1)"
-          test -n "$APKSIGNER"
-          "$APKSIGNER" verify "release-assets/android-remote-control-mcp-own-vps-gms-test.apk"
-          unzip -l release-assets/android-remote-control-mcp-own-vps-gms-test.apk | grep lib/arm64-v8a/libcloudpub.so
-          cp release-assets/android-remote-control-mcp-own-vps-gms-test.apk \
-            release-assets/android-remote-control-mcp-cloudpub-gms-test.apk
+          "$APKSIGNER" verify release-assets/android-remote-control-mcp-personal-s23.apk
+          python - <<'PYCODE'
+          import zipfile
+          p = 'release-assets/android-remote-control-mcp-personal-s23.apk'
+          with zipfile.ZipFile(p) as apk:
+              names = apk.namelist()
+              assert 'lib/arm64-v8a/libcloudpub.so' in names
+              assert not any(n.startswith('assets/geo/') for n in names)
+              assert all(not n.startswith('lib/') or n.startswith('lib/arm64-v8a/') for n in names)
+              assert not any(n.endswith(('libcloudflared.so', 'libngrok_java.so')) for n in names)
+              assert not any(n.startswith('assets/') and n.endswith(('.go', '.mod', '.sum')) for n in names)
+          print('ARM64, CloudPub only; no bundled VPS sources or alternative tunnel binaries')
+          PYCODE
           ls -lh release-assets/
 
-      - name: Upload Russian GMS APK to Actions artifacts
+      - name: Upload personal S23 APK to Actions artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: android-remote-control-mcp-own-vps-gms-test
+          name: android-remote-control-mcp-personal-s23
           path: release-assets/*
           retention-days: 14
           if-no-files-found: error
 
 
-      - name: Automatically publish successful APK to the Own VPS GitHub Release
+      - name: Publish verified personal APK
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail
           cat > release-notes.txt <<EOF
-          Experimental Android APK with CloudPub on the first Server tab.
-          Official CloudPub Android ARM64 agent, no personal VPS needed.
-          Enter your CloudPub API token on the phone, enable MCP, and copy the HTTPS MCP URL.
-          The public /health endpoint is checked before the app reports Connected.
-          Full Google ARTEMIS is not integrated. Samsung S23 / Beeline and ChatGPT
-          end-to-end connectivity are not device-tested.
+          Personal S23 Control: minimal dashboard, root permission setup and CloudPub.
+          ARM64 only, without Google Play Services, alternative tunnel binaries or VPS assets.
+          Every declared permission is checked against Android, plus accessibility, notification access and background operation.
+          Root-only backup preserves app settings, OAuth clients and CloudPub identity across later reinstalls.
+          First su authorization depends on the installed root manager. The first CloudPub token must be entered on the phone.
+          Root backup is available after the first successful run of this version; it cannot recover data already removed before that.
+          Physical Samsung S23 / One UI behavior still requires device verification.
 
           Build commit: $GITHUB_SHA
           Build: https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID
-
-          Signing key: $SIGNING_MODE.
-          Temporary signing keys do not support in-place upgrades from
-          previously signed builds; back up settings before reinstalling.
+          Signing key: $SIGNING_MODE. Back up current settings before reinstalling a differently signed APK.
+          Full Google ARTEMIS is not integrated.
           EOF
-          if gh release view own-vps-preview --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release upload own-vps-preview \
-              release-assets/android-remote-control-mcp-own-vps-gms-test.apk \
-              release-assets/android-remote-control-mcp-cloudpub-gms-test.apk \
-              release-assets/cloudpub-client.sha256 \
-              --clobber --repo "$GITHUB_REPOSITORY"
-            gh release edit own-vps-preview --repo "$GITHUB_REPOSITORY" \
-              --notes-file release-notes.txt \
-              --title "Android MCP with CloudPub (Preview)" --prerelease
+          if gh release view personal-s23-preview --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload personal-s23-preview release-assets/* --clobber --repo "$GITHUB_REPOSITORY"
+            gh release edit personal-s23-preview --repo "$GITHUB_REPOSITORY" --notes-file release-notes.txt --title "S23 Control — Personal" --prerelease
           else
-            gh release create own-vps-preview \
-              release-assets/android-remote-control-mcp-own-vps-gms-test.apk \
-              release-assets/android-remote-control-mcp-cloudpub-gms-test.apk \
-              release-assets/cloudpub-client.sha256 \
-              --repo "$GITHUB_REPOSITORY" \
-              --target "$GITHUB_SHA" \
-              --title "Android MCP with CloudPub (Preview)" \
-              --notes-file release-notes.txt --prerelease
+            gh release create personal-s23-preview release-assets/* --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "S23 Control — Personal" --notes-file release-notes.txt --prerelease
           fi
