@@ -185,16 +185,6 @@ interface SettingsRepository :
     /** Updates the ngrok domain (optional, empty string means auto-assigned). */
     suspend fun updateNgrokDomain(domain: String)
 
-    suspend fun updateFrpServerHost(host: String)
-
-    suspend fun updateFrpServerPort(port: Int)
-
-    suspend fun updateFrpAuthToken(token: String)
-
-    suspend fun updateFrpRemotePort(port: Int)
-
-    suspend fun updateFrpPublicUrl(url: String)
-
     /** Updates the Cloudflare tunnel mode (Free quick tunnel vs token-based named tunnel). */
     suspend fun updateCloudflareTunnelMode(mode: CloudflareTunnelMode)
 
