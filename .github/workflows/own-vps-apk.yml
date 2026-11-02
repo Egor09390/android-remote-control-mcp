@@ -84,47 +84,6 @@ jobs:
             make compile-ngrok-native
           fi
 
-      - name: Cache zrok2 Android arm64 executable
-        uses: actions/cache@v4
-        with:
-          path: app/src/main/jniLibs/arm64-v8a/libzrok2.so
-          key: android-zrok2-v2.0.9-bionic-arm64-v2
-
-      - name: Build official zrok2 v2.0.9 for Android arm64
-        shell: bash
-        run: |
-          set -euo pipefail
-          OUT="$GITHUB_WORKSPACE/app/src/main/jniLibs/arm64-v8a/libzrok2.so"
-          if [ -s "$OUT" ]; then
-            chmod +x "$OUT"
-            exit 0
-          fi
-          NDK_ROOT=""
-          if [ -d "$ANDROID_HOME/ndk" ]; then
-            NDK_ROOT="$(find "$ANDROID_HOME/ndk" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n 1)"
-          fi
-          if [ -z "$NDK_ROOT" ]; then
-            "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "ndk;28.2.13676358"
-            NDK_ROOT="$ANDROID_HOME/ndk/28.2.13676358"
-          fi
-          CC="$NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android33-clang"
-          test -x "$CC"
-
-          git clone --depth 1 --branch v2.0.9 https://github.com/openziti/zrok.git "$RUNNER_TEMP/zrok2"
-          cd "$RUNNER_TEMP/zrok2"
-          EXPECTED="fea58ae4a8126e2a811a57046451049fd8e80e2c"
-          test "$(git rev-parse HEAD)" = "$EXPECTED"
-
-          # v2 includes embedded web console assets; build them before Go compilation.
-          (cd ui && npm ci && npm run build)
-          (cd agent/agentUi && npm ci && npm run build)
-          mkdir -p "$(dirname "$OUT")"
-          env CGO_ENABLED=1 GOOS=android GOARCH=arm64 CC="$CC" GOFLAGS="-p=2" \
-            go build -trimpath -ldflags="-s -w" -o "$OUT" ./cmd/zrok2
-          test -s "$OUT"
-          file "$OUT"
-          chmod 755 "$OUT"
-
       - name: Configure release signing
         env:
           RU_KEYSTORE_BASE64: ${{ secrets.RU_KEYSTORE_BASE64 }}
@@ -191,7 +150,7 @@ jobs:
         run: |
           set -euo pipefail
           cat > release-notes.txt <<EOF
-          Experimental Android APK with zrok2 v2.0.9 public HTTPS tunnel built in for Android arm64; requires a hosted zrok account, no owner-operated VPS.
+          Experimental Android APK with own VPS SSH setup on the first Server tab.
 
           Build commit: $GITHUB_SHA
           Build: https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID

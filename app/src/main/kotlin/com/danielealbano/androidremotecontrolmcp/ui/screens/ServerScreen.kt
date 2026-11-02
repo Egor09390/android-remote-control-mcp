@@ -55,7 +55,6 @@ import com.danielealbano.androidremotecontrolmcp.ui.ApprovalActivity
 import com.danielealbano.androidremotecontrolmcp.ui.components.BatteryOptimizationCard
 import com.danielealbano.androidremotecontrolmcp.ui.components.CalloutCard
 import com.danielealbano.androidremotecontrolmcp.ui.components.NgrokQuickSetupCard
-import com.danielealbano.androidremotecontrolmcp.ui.components.ZrokQuickSetupCard
 import com.danielealbano.androidremotecontrolmcp.ui.components.OwnVpsSetupCard
 import com.danielealbano.androidremotecontrolmcp.ui.components.ChatGptConnectorCard
 import com.danielealbano.androidremotecontrolmcp.ui.components.ConnectionInfoCard
@@ -127,13 +126,6 @@ fun ServerScreen(
                     .verticalScroll(rememberScrollState())
                     .padding(16.dp),
         ) {
-            ZrokQuickSetupCard(
-                config = serverConfig,
-                serverStatus = serverStatus,
-                onEnable = { token, name -> viewModel.activateZrok(context, token, name) },
-            )
-            Spacer(Modifier.height(16.dp))
-
             NgrokQuickSetupCard(
                 config = serverConfig,
                 serverStatus = serverStatus,

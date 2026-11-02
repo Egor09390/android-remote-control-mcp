@@ -17,9 +17,6 @@ enum class TunnelProviderType(
     /** ngrok tunnel — requires authtoken, supports stable domains. */
     NGROK("NGROK"),
 
-    /** Hosted zrok2 public HTTPS share; no owner-operated VPS required. */
-    ZROK("ZROK"),
-
     /** Owner-operated reverse tunnel hosted on a private VPS. */
     SELF_HOSTED("SELF_HOSTED"),
     ;

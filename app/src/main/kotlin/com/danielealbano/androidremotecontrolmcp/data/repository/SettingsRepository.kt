@@ -184,10 +184,6 @@ interface SettingsRepository :
 
     /** Updates the ngrok domain (optional, empty string means auto-assigned). */
     suspend fun updateNgrokDomain(domain: String)
-    /** Save zrok environment-enrollment token locally; never print or include in URL. */
-    suspend fun updateZrokEnableToken(token: String)
-    /** Public namespace reserved name; blank means a random URL for each session. */
-    suspend fun updateZrokReservedName(name: String)
 
     /** Updates the Cloudflare tunnel mode (Free quick tunnel vs token-based named tunnel). */
     suspend fun updateCloudflareTunnelMode(mode: CloudflareTunnelMode)

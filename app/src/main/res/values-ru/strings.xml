@@ -506,19 +506,4 @@
     <string name="ngrok_quick_not_configured">ngrok ещё не выбран. Сначала введи токен.</string>
     <string name="ngrok_quick_artemis_note">Сейчас туннель открывает существующий Android MCP. Полный движок Google ARTEMIS пока не установлен в APK.</string>
     <string name="ngrok_quick_vps_advanced">Дополнительно: настройки VPS и ADB</string>
-
-    <string name="remote_access_provider_zrok">zrok</string>
-    <string name="remote_access_provider_zrok_desc">Бесплатная публичная HTTPS-ссылка без VPS; нужен аккаунт zrok2</string>
-    <string name="zrok_quick_title">zrok — без VPS</string>
-    <string name="zrok_quick_description">Зарегистрируйся на myzrok.io, скопируй токен аккаунта и вставь сюда. Приложение само активирует среду zrok2 на телефоне и опубликует MCP через HTTPS.</string>
-    <string name="zrok_quick_token_label">Токен аккаунта zrok2</string>
-    <string name="zrok_quick_saved_token">Токен уже сохранён на устройстве</string>
-    <string name="zrok_quick_token_placeholder">Вставь токен из myzrok.io</string>
-    <string name="zrok_quick_name_label">Постоянное имя (необязательно)</string>
-    <string name="zrok_quick_name_hint">Например s23-mcp. Имя должно быть свободно в public. Пусто — случайная ссылка.</string>
-    <string name="zrok_quick_activate">Сохранить zrok и включить MCP</string>
-    <string name="zrok_quick_stop_first">Перед сменой туннеля останови MCP.</string>
-    <string name="zrok_quick_configured">zrok выбран. Ссылка появится ниже после подключения.</string>
-    <string name="zrok_quick_not_configured">zrok пока не включён. Укажи токен аккаунта.</string>
-    <string name="zrok_quick_warning">Для ChatGPT необходима работающая HTTPS-ссылка /mcp. На бесплатном zrok возможна страница-предупреждение, мешающая MCP. Полный Google ARTEMIS в APK пока не встроен.</string>
 </resources>
