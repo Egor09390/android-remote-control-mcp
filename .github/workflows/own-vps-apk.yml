@@ -92,6 +92,7 @@ jobs:
         run: >-
           ./gradlew --no-daemon :app:testFossDebugUnitTest -PPERSONAL_BUILD=true
           --tests '*PersonalSetupScriptsTest'
+          --tests '*PersonalSetupTest'
           --tests '*CloudPubTunnelProviderTest'
           --tests '*TunnelManagerTest'
           --tests '*TunnelProviderTypeTest'

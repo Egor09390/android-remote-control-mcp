@@ -72,7 +72,7 @@ internal object PersonalSetupScripts {
                   chmod 700 "${'$'}DATA/files" "${'$'}DATA/no_backup"
                   chown -R $uid:$uid "${'$'}DATA/files/datastore" "${'$'}DATA/no_backup/cloudpub" || exit 22
                   chmod -R u+rwX,go-rwx "${'$'}DATA/files/datastore" "${'$'}DATA/no_backup/cloudpub"
-                  restorecon -RF "${'$'}DATA/files/datastore" "${'$'}DATA/no_backup/cloudpub" >/dev/null 2>&1 || true
+                  restorecon -RF "${'$'}DATA/files" "${'$'}DATA/no_backup" >/dev/null 2>&1 || true
                   echo RESTORED_OK
                 fi
             """.trimIndent()
