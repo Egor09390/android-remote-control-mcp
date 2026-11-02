@@ -63,6 +63,10 @@ data class ServerConfig(
     val tunnelProvider: TunnelProviderType = TunnelProviderType.ARC_TUNNEL,
     val ngrokAuthtoken: String = "",
     val ngrokDomain: String = "",
+    /** Secret zrok account enable token, used only for initial device enrollment. */
+    val zrokEnableToken: String = "",
+    /** Optional reserved public name, e.g. s23-mcp (must be reserved in zrok dashboard/CLI). */
+    val zrokReservedName: String = "",
     val cloudflareTunnelMode: CloudflareTunnelMode = CloudflareTunnelMode.FREE,
     val cloudflareTunnelToken: String = "",
     val cloudflareTunnelExtraArgs: String = "",
