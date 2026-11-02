@@ -60,6 +60,11 @@ private val TUNNEL_ENABLED_KEY = booleanPreferencesKey("tunnel_enabled")
 private val TUNNEL_PROVIDER_KEY = stringPreferencesKey("tunnel_provider")
 private val NGROK_AUTHTOKEN_KEY = stringPreferencesKey("ngrok_authtoken")
 private val NGROK_DOMAIN_KEY = stringPreferencesKey("ngrok_domain")
+private val FRP_SERVER_HOST_KEY = stringPreferencesKey("frp_server_host")
+private val FRP_SERVER_PORT_KEY = intPreferencesKey("frp_server_port")
+private val FRP_AUTH_TOKEN_KEY = stringPreferencesKey("frp_auth_token")
+private val FRP_REMOTE_PORT_KEY = intPreferencesKey("frp_remote_port")
+private val FRP_PUBLIC_URL_KEY = stringPreferencesKey("frp_public_url")
 private val CLOUDFLARE_TUNNEL_MODE_KEY = stringPreferencesKey("cloudflare_tunnel_mode")
 private val CLOUDFLARE_TUNNEL_TOKEN_KEY = stringPreferencesKey("cloudflare_tunnel_token")
 private val CLOUDFLARE_TUNNEL_EXTRA_ARGS_KEY = stringPreferencesKey("cloudflare_tunnel_extra_args")
@@ -137,6 +142,11 @@ private fun mapPreferencesToServerConfig(prefs: Preferences): ServerConfig {
                 ?: TunnelProviderType.ARC_TUNNEL,
         ngrokAuthtoken = prefs[NGROK_AUTHTOKEN_KEY] ?: "",
         ngrokDomain = prefs[NGROK_DOMAIN_KEY] ?: "",
+        frpServerHost = prefs[FRP_SERVER_HOST_KEY] ?: "",
+        frpServerPort = prefs[FRP_SERVER_PORT_KEY] ?: 7000,
+        frpAuthToken = prefs[FRP_AUTH_TOKEN_KEY] ?: "",
+        frpRemotePort = prefs[FRP_REMOTE_PORT_KEY] ?: 18080,
+        frpPublicUrl = prefs[FRP_PUBLIC_URL_KEY] ?: "",
         cloudflareTunnelMode =
             CloudflareTunnelMode.entries.firstOrNull { it.name == cloudflareTunnelModeName }
                 ?: CloudflareTunnelMode.FREE,
@@ -557,6 +567,31 @@ class SettingsRepositoryImpl
 
         override suspend fun updateNgrokDomain(domain: String) =
             logScalarChange(NGROK_DOMAIN_KEY, "ngrok_domain", domain, "") { o, n -> "ngrok domain changed $o → $n" }
+
+        override suspend fun updateFrpServerHost(host: String) =
+            logScalarChange(FRP_SERVER_HOST_KEY, "frp_server_host", host.trim(), "") { _, _ ->
+                "FRP server host updated"
+            }
+
+        override suspend fun updateFrpServerPort(port: Int) =
+            logScalarChange(FRP_SERVER_PORT_KEY, "frp_server_port", port, 7000) { _, _ ->
+                "FRP control port updated"
+            }
+
+        override suspend fun updateFrpAuthToken(token: String) =
+            logScalarChange(FRP_AUTH_TOKEN_KEY, "frp_auth_token", token, "") { _, _ ->
+                "FRP authentication secret updated"
+            }
+
+        override suspend fun updateFrpRemotePort(port: Int) =
+            logScalarChange(FRP_REMOTE_PORT_KEY, "frp_remote_port", port, 18080) { _, _ ->
+                "FRP remote port updated"
+            }
+
+        override suspend fun updateFrpPublicUrl(url: String) =
+            logScalarChange(FRP_PUBLIC_URL_KEY, "frp_public_url", url.trim(), "") { _, _ ->
+                "FRP public HTTPS URL updated"
+            }
 
         override suspend fun updateCloudflareTunnelMode(mode: CloudflareTunnelMode) =
             logScalarChange(
