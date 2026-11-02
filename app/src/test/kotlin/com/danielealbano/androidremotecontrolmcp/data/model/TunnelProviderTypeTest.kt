@@ -24,6 +24,7 @@ class TunnelProviderTypeTest {
     fun `fromAdbValue resolves CLOUDFLARE and NGROK`() {
         assertEquals(TunnelProviderType.CLOUDFLARE, TunnelProviderType.fromAdbValue("CLOUDFLARE"))
         assertEquals(TunnelProviderType.NGROK, TunnelProviderType.fromAdbValue("NGROK"))
+        assertEquals(TunnelProviderType.ZROK, TunnelProviderType.fromAdbValue("ZROK"))
     }
 
     @Test
