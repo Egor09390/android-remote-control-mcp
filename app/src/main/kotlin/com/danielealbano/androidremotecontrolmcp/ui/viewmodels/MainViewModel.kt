@@ -116,6 +116,9 @@ class MainViewModel
         private val _tunnelStatus = MutableStateFlow<TunnelStatus>(TunnelStatus.Disconnected)
         val tunnelStatus: StateFlow<TunnelStatus> = _tunnelStatus.asStateFlow()
 
+        private val _cloudpubTokenInput = MutableStateFlow("")
+        val cloudpubTokenInput: StateFlow<String> = _cloudpubTokenInput.asStateFlow()
+
         private val _ngrokAuthtokenInput = MutableStateFlow("")
         val ngrokAuthtokenInput: StateFlow<String> = _ngrokAuthtokenInput.asStateFlow()
 
@@ -177,6 +180,7 @@ class MainViewModel
                     _tunnelLocalPortError.value = null
                     _hostnameInput.value = config.certificateHostname
                     _hostnameError.value = null
+                    _cloudpubTokenInput.value = config.cloudpubToken
                     _ngrokAuthtokenInput.value = config.ngrokAuthtoken
                     _ngrokDomainInput.value = config.ngrokDomain
                     _cloudflareTokenInput.value = config.cloudflareTunnelToken
@@ -380,6 +384,26 @@ class MainViewModel
         fun updateTunnelProvider(provider: TunnelProviderType) {
             viewModelScope.launch(ioDispatcher) {
                 settingsRepository.updateTunnelProvider(provider)
+            }
+        }
+
+        fun updateCloudpubToken(token: String) {
+            _cloudpubTokenInput.value = token
+            viewModelScope.launch(ioDispatcher) {
+                settingsRepository.updateCloudpubToken(token.trim())
+            }
+        }
+
+        /** Save before starting the service, so the tunnel receives the selected token/provider. */
+        fun activateCloudpub(context: Context, newToken: String) {
+            viewModelScope.launch(ioDispatcher) {
+                val status = McpServerService.serverStatus.value
+                if (status !is ServerStatus.Stopped && status !is ServerStatus.Error) return@launch
+                if (newToken.isNotBlank()) settingsRepository.updateCloudpubToken(newToken.trim())
+                if (settingsRepository.getServerConfig().cloudpubToken.isBlank()) return@launch
+                settingsRepository.updateTunnelProvider(TunnelProviderType.CLOUDPUB)
+                settingsRepository.updateTunnelEnabled(true)
+                startServer(context.applicationContext)
             }
         }
 

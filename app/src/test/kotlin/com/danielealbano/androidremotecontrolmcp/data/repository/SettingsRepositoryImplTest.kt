@@ -55,6 +55,17 @@ class SettingsRepositoryImplTest {
 
     private var testFileCounter = 0
 
+    @Test
+    fun `CloudPub token and selected provider persist through repository reads`() = runTest {
+        repository.updateCloudpubToken("device-only-test-token")
+        repository.updateTunnelProvider(TunnelProviderType.CLOUDPUB)
+        repository.updateTunnelEnabled(true)
+        val config = repository.getServerConfig()
+        assertEquals("device-only-test-token", config.cloudpubToken)
+        assertEquals(TunnelProviderType.CLOUDPUB, config.tunnelProvider)
+        assertTrue(config.tunnelEnabled)
+    }
+
     @BeforeEach
     fun setUp() {
         mockkStatic(Log::class)

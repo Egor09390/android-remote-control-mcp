@@ -74,6 +74,14 @@ class SettingsRepositoryLoggingTest {
     private fun settingsMessages() = serverLog.ofType(ServerLogEntry.Type.SETTINGS).map { it.message }
 
     @Test
+    fun `CloudPub token is persisted without appearing in logs`() = testScope.runTest {
+        repository.updateCloudpubToken("secret-cloudpub-test-token")
+        advanceUntilIdle()
+        assertEquals("CloudPub token changed", settingsMessages().single())
+        assertFalse(settingsMessages().joinToString().contains("secret-cloudpub-test-token"))
+    }
+
+    @Test
     fun `updatePort logs old to new`() =
         testScope.runTest {
             repository.updatePort(9090)

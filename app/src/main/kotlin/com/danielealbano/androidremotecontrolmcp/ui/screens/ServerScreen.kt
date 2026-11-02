@@ -54,6 +54,7 @@ import com.danielealbano.androidremotecontrolmcp.services.tunnel.arctunnel.ArcTu
 import com.danielealbano.androidremotecontrolmcp.ui.ApprovalActivity
 import com.danielealbano.androidremotecontrolmcp.ui.components.BatteryOptimizationCard
 import com.danielealbano.androidremotecontrolmcp.ui.components.CalloutCard
+import com.danielealbano.androidremotecontrolmcp.ui.components.CloudPubQuickSetupCard
 import com.danielealbano.androidremotecontrolmcp.ui.components.NgrokQuickSetupCard
 import com.danielealbano.androidremotecontrolmcp.ui.components.OwnVpsSetupCard
 import com.danielealbano.androidremotecontrolmcp.ui.components.ChatGptConnectorCard
@@ -126,6 +127,12 @@ fun ServerScreen(
                     .verticalScroll(rememberScrollState())
                     .padding(16.dp),
         ) {
+            CloudPubQuickSetupCard(
+                config = serverConfig,
+                serverStatus = serverStatus,
+                onEnable = { newToken -> viewModel.activateCloudpub(context, newToken) },
+            )
+            Spacer(Modifier.height(8.dp))
             NgrokQuickSetupCard(
                 config = serverConfig,
                 serverStatus = serverStatus,

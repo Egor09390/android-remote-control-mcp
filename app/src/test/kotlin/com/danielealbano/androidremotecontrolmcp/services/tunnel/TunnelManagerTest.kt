@@ -28,6 +28,10 @@ import javax.inject.Provider
 @DisplayName("TunnelManager")
 class TunnelManagerTest {
     private val mockCloudflareProvider = mockk<CloudflareTunnelProvider>(relaxed = true)
+    private val mockCloudpubProvider = mockk<CloudPubTunnelProvider>(relaxed = true)
+    private val cloudpubFactory = mockk<Provider<CloudPubTunnelProvider>> {
+        every { get() } returns mockCloudpubProvider
+    }
     private val mockNgrokProvider = mockk<NgrokTunnelProvider>(relaxed = true)
     private val mockSelfHostedProvider = mockk<SelfHostedTunnelProvider>(relaxed = true)
     private val selfHostedFactory =
@@ -59,6 +63,7 @@ class TunnelManagerTest {
     private fun createManager(): TunnelManager =
         TunnelManager(
             cloudflareTunnelProviderFactory = cloudflareFactory,
+            cloudpubTunnelProviderFactory = cloudpubFactory,
             ngrokTunnelProviderFactory = ngrokFactory,
             selfHostedTunnelProviderFactory = selfHostedFactory,
             arcTunnelProviderFactory = arcFactory,
@@ -68,6 +73,21 @@ class TunnelManagerTest {
     @Nested
     @DisplayName("start")
     inner class Start {
+        @Test
+        fun `CloudPub uses the configured tunnel listener port`() = runTest {
+            val config = ServerConfig(
+                tunnelEnabled = true,
+                tunnelProvider = TunnelProviderType.CLOUDPUB,
+                tunnelLocalPort = 61001,
+            )
+            every { mockCloudpubProvider.status } returns MutableStateFlow(TunnelStatus.Disconnected)
+            val manager = createManager()
+            manager.start(config, listenerHost)
+            coVerify { mockCloudpubProvider.start(61001, config) }
+            coVerify(exactly = 0) { mockNgrokProvider.start(any(), any()) }
+            manager.stop()
+        }
+
         @Test
         fun `start with tunnel enabled and Cloudflare provider starts Cloudflare tunnel`() =
             runTest {

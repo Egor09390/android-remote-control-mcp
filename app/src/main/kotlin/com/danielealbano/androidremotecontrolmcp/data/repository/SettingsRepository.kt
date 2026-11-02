@@ -179,6 +179,9 @@ interface SettingsRepository :
     /** Updates the tunnel provider type. */
     suspend fun updateTunnelProvider(provider: TunnelProviderType)
 
+    /** CloudPub API token, entered only on the device. */
+    suspend fun updateCloudpubToken(token: String)
+
     /** Updates the ngrok authtoken. */
     suspend fun updateNgrokAuthtoken(authtoken: String)
 

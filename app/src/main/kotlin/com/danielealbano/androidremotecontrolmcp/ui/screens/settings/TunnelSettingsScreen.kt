@@ -83,6 +83,7 @@ fun TunnelSettingsScreen(
     val serverConfig by viewModel.serverConfig.collectAsStateWithLifecycle()
     val serverStatus by viewModel.serverStatus.collectAsStateWithLifecycle()
     val tunnelStatus by viewModel.tunnelStatus.collectAsStateWithLifecycle()
+    val cloudpubTokenInput by viewModel.cloudpubTokenInput.collectAsStateWithLifecycle()
     val ngrokAuthtokenInput by viewModel.ngrokAuthtokenInput.collectAsStateWithLifecycle()
     val ngrokDomainInput by viewModel.ngrokDomainInput.collectAsStateWithLifecycle()
     val cloudflareTokenInput by viewModel.cloudflareTokenInput.collectAsStateWithLifecycle()
@@ -258,6 +259,18 @@ fun TunnelSettingsScreen(
                 }
             }
 
+            AnimatedVisibility(visible = serverConfig.tunnelProvider == TunnelProviderType.CLOUDPUB) {
+                OutlinedTextField(
+                    value = cloudpubTokenInput,
+                    onValueChange = viewModel::updateCloudpubToken,
+                    label = { Text(stringResource(R.string.cloudpub_quick_token_label)) },
+                    visualTransformation = PasswordVisualTransformation(),
+                    singleLine = true,
+                    enabled = isEnabled,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+
             // ngrok-specific fields
             AnimatedVisibility(visible = serverConfig.tunnelProvider == TunnelProviderType.NGROK) {
                 Column {
@@ -334,6 +347,7 @@ private fun providerTitle(provider: TunnelProviderType): String =
     when (provider) {
         TunnelProviderType.ARC_TUNNEL -> stringResource(R.string.remote_access_provider_arc_tunnel)
         TunnelProviderType.CLOUDFLARE -> stringResource(R.string.remote_access_provider_cloudflare)
+        TunnelProviderType.CLOUDPUB -> "CloudPub"
         TunnelProviderType.NGROK -> stringResource(R.string.remote_access_provider_ngrok)
         TunnelProviderType.SELF_HOSTED -> stringResource(R.string.remote_access_provider_self_hosted)
     }
@@ -343,6 +357,7 @@ private fun providerDescription(provider: TunnelProviderType): String =
     when (provider) {
         TunnelProviderType.ARC_TUNNEL -> stringResource(R.string.remote_access_provider_arc_tunnel_desc)
         TunnelProviderType.CLOUDFLARE -> stringResource(R.string.remote_access_provider_cloudflare_desc)
+        TunnelProviderType.CLOUDPUB -> stringResource(R.string.cloudpub_quick_description)
         TunnelProviderType.NGROK -> stringResource(R.string.remote_access_provider_ngrok_desc)
         TunnelProviderType.SELF_HOSTED -> stringResource(R.string.remote_access_provider_self_hosted_desc)
     }

@@ -506,4 +506,17 @@
     <string name="ngrok_quick_not_configured">ngrok ещё не выбран. Сначала введи токен.</string>
     <string name="ngrok_quick_artemis_note">Сейчас туннель открывает существующий Android MCP. Полный движок Google ARTEMIS пока не установлен в APK.</string>
     <string name="ngrok_quick_vps_advanced">Дополнительно: настройки VPS и ADB</string>
+
+    <!-- CloudPub Android tunnel -->
+    <string name="cloudpub_quick_title">CloudPub — подключение без VPS</string>
+    <string name="cloudpub_quick_description">Официальный клиент CloudPub запускается внутри приложения и открывает MCP по HTTPS. Нужны аккаунт CloudPub и API-токен.</string>
+    <string name="cloudpub_quick_account">Открыть личный кабинет CloudPub</string>
+    <string name="cloudpub_quick_token_label">API-токен CloudPub</string>
+    <string name="cloudpub_quick_saved_token">Токен сохранён; оставь поле пустым, чтобы использовать его</string>
+    <string name="cloudpub_quick_token_placeholder">Вставь токен из личного кабинета CloudPub</string>
+    <string name="cloudpub_quick_activate">Сохранить CloudPub и включить MCP</string>
+    <string name="cloudpub_quick_stop_first">Останови MCP перед изменением настроек CloudPub.</string>
+    <string name="cloudpub_quick_configured">CloudPub выбран. Ссылка появится после проверки доступности MCP через интернет.</string>
+    <string name="cloudpub_quick_not_configured">Введи токен, чтобы выбрать CloudPub.</string>
+    <string name="cloudpub_quick_artemis_note">Не передавай токен другим. Подключается текущий Android MCP; полный ARTEMIS ещё не интегрирован.</string>
 </resources>

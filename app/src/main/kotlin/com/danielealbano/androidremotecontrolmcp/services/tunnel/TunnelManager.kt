@@ -31,6 +31,7 @@ class TunnelManager
     @Inject
     constructor(
         private val cloudflareTunnelProviderFactory: Provider<CloudflareTunnelProvider>,
+        private val cloudpubTunnelProviderFactory: Provider<CloudPubTunnelProvider>,
         private val ngrokTunnelProviderFactory: Provider<NgrokTunnelProvider>,
         private val selfHostedTunnelProviderFactory: Provider<SelfHostedTunnelProvider>,
         private val arcTunnelProviderFactory: Provider<ArcTunnelProvider>,
@@ -59,6 +60,7 @@ class TunnelManager
                     when (config.tunnelProvider) {
                         TunnelProviderType.ARC_TUNNEL -> arcTunnelProviderFactory.get().also { it.bind(listenerHost) }
                         TunnelProviderType.CLOUDFLARE -> cloudflareTunnelProviderFactory.get()
+                        TunnelProviderType.CLOUDPUB -> cloudpubTunnelProviderFactory.get()
                         TunnelProviderType.NGROK -> ngrokTunnelProviderFactory.get()
                         TunnelProviderType.SELF_HOSTED -> selfHostedTunnelProviderFactory.get()
                     }

@@ -9,6 +9,7 @@ on:
       - '.github/workflows/own-vps-apk.yml'
       - 'app/**'
       - 'selfhost/**'
+      - 'scripts/package-cloudpub.py'
       - 'build.gradle.kts'
       - 'gradle/**'
 
@@ -57,6 +58,9 @@ jobs:
         with:
           python-version: '3.12'
 
+      - name: Package official CloudPub Android ARM64 client
+        run: python scripts/package-cloudpub.py
+
       - name: Cache cloudflared and ngrok native dependencies
         uses: actions/cache@v4
         with:
@@ -83,6 +87,15 @@ jobs:
           if [ ! -f app/src/main/jniLibs/arm64-v8a/libngrok_java.so ] || [ ! -f app/src/main/jniLibs/x86_64/libngrok_java.so ]; then
             make compile-ngrok-native
           fi
+
+      - name: Test CloudPub parsing, configuration and tunnel routing
+        run: >-
+          ./gradlew --no-daemon :app:testGmsDebugUnitTest
+          --tests '*CloudPubTunnelProviderTest'
+          --tests '*TunnelManagerTest'
+          --tests '*TunnelProviderTypeTest'
+          --tests '*SettingsRepositoryImplTest'
+          --tests '*SettingsRepositoryLoggingTest'
 
       - name: Configure release signing
         env:
@@ -132,13 +145,16 @@ jobs:
           APKSIGNER="$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -1)"
           test -n "$APKSIGNER"
           "$APKSIGNER" verify "release-assets/android-remote-control-mcp-own-vps-gms-test.apk"
+          unzip -l release-assets/android-remote-control-mcp-own-vps-gms-test.apk | grep lib/arm64-v8a/libcloudpub.so
+          cp release-assets/android-remote-control-mcp-own-vps-gms-test.apk \
+            release-assets/android-remote-control-mcp-cloudpub-gms-test.apk
           ls -lh release-assets/
 
       - name: Upload Russian GMS APK to Actions artifacts
         uses: actions/upload-artifact@v4
         with:
           name: android-remote-control-mcp-own-vps-gms-test
-          path: release-assets/*.apk
+          path: release-assets/*
           retention-days: 14
           if-no-files-found: error
 
@@ -150,28 +166,36 @@ jobs:
         run: |
           set -euo pipefail
           cat > release-notes.txt <<EOF
-          Experimental Android APK with own VPS SSH setup on the first Server tab.
+          Experimental Android APK with CloudPub on the first Server tab.
+          Official CloudPub Android ARM64 agent, no personal VPS needed.
+          Enter your CloudPub API token on the phone, enable MCP, and copy the HTTPS MCP URL.
+          The public /health endpoint is checked before the app reports Connected.
+          Full Google ARTEMIS is not integrated. Samsung S23 / Beeline and ChatGPT
+          end-to-end connectivity are not device-tested.
 
           Build commit: $GITHUB_SHA
           Build: https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID
 
-          Unverified on a real VPS. Verify the SSH host fingerprint before
-          entering server credentials. Signing key: $SIGNING_MODE.
+          Signing key: $SIGNING_MODE.
           Temporary signing keys do not support in-place upgrades from
           previously signed builds; back up settings before reinstalling.
           EOF
           if gh release view own-vps-preview --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             gh release upload own-vps-preview \
               release-assets/android-remote-control-mcp-own-vps-gms-test.apk \
+              release-assets/android-remote-control-mcp-cloudpub-gms-test.apk \
+              release-assets/cloudpub-client.sha256 \
               --clobber --repo "$GITHUB_REPOSITORY"
             gh release edit own-vps-preview --repo "$GITHUB_REPOSITORY" \
               --notes-file release-notes.txt \
-              --title "Own VPS Android APK (Preview)" --prerelease
+              --title "Android MCP with CloudPub (Preview)" --prerelease
           else
             gh release create own-vps-preview \
               release-assets/android-remote-control-mcp-own-vps-gms-test.apk \
+              release-assets/android-remote-control-mcp-cloudpub-gms-test.apk \
+              release-assets/cloudpub-client.sha256 \
               --repo "$GITHUB_REPOSITORY" \
               --target "$GITHUB_SHA" \
-              --title "Own VPS Android APK (Preview)" \
+              --title "Android MCP with CloudPub (Preview)" \
               --notes-file release-notes.txt --prerelease
           fi

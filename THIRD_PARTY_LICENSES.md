@@ -265,3 +265,12 @@ Rust crates compiled into it:
 |---|---|---|
 | DB-IP IP to City Lite database (compiled into the app at build time) | CC BY 4.0 | https://db-ip.com |
 | Ai4Privacy multilingual PII anonymiser model (downloaded by the app on first use of Privacy Mode, not part of the APK) | MIT; Built with Llama | https://huggingface.co/ai4privacy/llama-ai4privacy-multilingual-categorical-anonymiser-openpii |
+
+
+## CloudPub Android client
+
+Official client: https://cloudpub.ru/ — source: https://github.com/ermak-dev/cloudpub
+
+Apache License 2.0. The client license is included in `app/src/main/assets/cloudpub-LICENSE.txt`.
+The preview build packages the Android ARM64 release pinned in `scripts/package-cloudpub.py`;
+its source URL and hashes are included with the release.
