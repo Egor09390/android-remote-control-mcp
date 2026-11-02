@@ -550,4 +550,16 @@
 
     <string name="artemis_root_adb_toggle">ADB with root (Samsung / One UI)</string>
     <string name="artemis_root_adb_note">Starting MCP will request su and attempt to bind ADB strictly to 127.0.0.1:5555. If the firmware does not support it, the operation will fail closed. Initial Artemis ADB host authorization on VPS is still required.</string>
+
+    <string name="ngrok_quick_title">ngrok connection — no VPS</string>
+    <string name="ngrok_quick_description">You do not need to create an Endpoint in the browser. Paste a fresh ngrok Authtoken: the app launches the HTTPS tunnel with MCP. Never share the token.</string>
+    <string name="ngrok_quick_token_label">ngrok Authtoken</string>
+    <string name="ngrok_quick_saved_token">Token already saved on this phone</string>
+    <string name="ngrok_quick_token_placeholder">Paste the token here</string>
+    <string name="ngrok_quick_activate">Save ngrok and start MCP</string>
+    <string name="ngrok_quick_stop_first">Stop MCP before switching tunnel providers.</string>
+    <string name="ngrok_quick_configured">ngrok is selected. The link will appear below when connected.</string>
+    <string name="ngrok_quick_not_configured">ngrok is not selected. Enter a token first.</string>
+    <string name="ngrok_quick_artemis_note">The tunnel currently exposes the existing Android MCP. The complete Google ARTEMIS engine is not installed in this APK yet.</string>
+    <string name="ngrok_quick_vps_advanced">Advanced: VPS and ADB settings</string>
 </resources>
