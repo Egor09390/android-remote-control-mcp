@@ -562,4 +562,19 @@
     <string name="ngrok_quick_not_configured">ngrok is not selected. Enter a token first.</string>
     <string name="ngrok_quick_artemis_note">The tunnel currently exposes the existing Android MCP. The complete Google ARTEMIS engine is not installed in this APK yet.</string>
     <string name="ngrok_quick_vps_advanced">Advanced: VPS and ADB settings</string>
+
+    <string name="remote_access_provider_zrok">zrok</string>
+    <string name="remote_access_provider_zrok_desc">Public HTTPS sharing without VPS; requires a zrok2 account</string>
+    <string name="zrok_quick_title">zrok — no VPS</string>
+    <string name="zrok_quick_description">Sign up at myzrok.io and paste your account token. The app enrolls this Android device with zrok2 and shares the MCP endpoint over HTTPS.</string>
+    <string name="zrok_quick_token_label">zrok2 account token</string>
+    <string name="zrok_quick_saved_token">Token already saved on this device</string>
+    <string name="zrok_quick_token_placeholder">Paste token from myzrok.io</string>
+    <string name="zrok_quick_name_label">Persistent name (optional)</string>
+    <string name="zrok_quick_name_hint">For example s23-mcp. Name must be available in the public namespace. Blank means a new URL per session.</string>
+    <string name="zrok_quick_activate">Save zrok and start MCP</string>
+    <string name="zrok_quick_stop_first">Stop MCP before changing the tunnel.</string>
+    <string name="zrok_quick_configured">zrok selected. A link appears below when connected.</string>
+    <string name="zrok_quick_not_configured">zrok is not selected yet. Enter an account token.</string>
+    <string name="zrok_quick_warning">ChatGPT needs a working HTTPS /mcp endpoint. Free zrok may show an interstitial that interferes with MCP. The complete Google ARTEMIS engine is not yet in this APK.</string>
 </resources>
