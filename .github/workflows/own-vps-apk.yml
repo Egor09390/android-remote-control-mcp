@@ -99,7 +99,10 @@ jobs:
             chmod +x "$OUT"
             exit 0
           fi
-          NDK_ROOT="$(find "$ANDROID_HOME/ndk" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n 1)"
+          NDK_ROOT=""
+          if [ -d "$ANDROID_HOME/ndk" ]; then
+            NDK_ROOT="$(find "$ANDROID_HOME/ndk" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n 1)"
+          fi
           if [ -z "$NDK_ROOT" ]; then
             "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "ndk;28.2.13676358"
             NDK_ROOT="$ANDROID_HOME/ndk/28.2.13676358"
