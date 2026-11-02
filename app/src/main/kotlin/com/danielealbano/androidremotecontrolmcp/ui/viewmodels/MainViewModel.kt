@@ -116,6 +116,11 @@ class MainViewModel
         private val _tunnelStatus = MutableStateFlow<TunnelStatus>(TunnelStatus.Disconnected)
         val tunnelStatus: StateFlow<TunnelStatus> = _tunnelStatus.asStateFlow()
 
+        private val _zrokEnableTokenInput = MutableStateFlow("")
+        val zrokEnableTokenInput: StateFlow<String> = _zrokEnableTokenInput.asStateFlow()
+        private val _zrokReservedNameInput = MutableStateFlow("")
+        val zrokReservedNameInput: StateFlow<String> = _zrokReservedNameInput.asStateFlow()
+
         private val _ngrokAuthtokenInput = MutableStateFlow("")
         val ngrokAuthtokenInput: StateFlow<String> = _ngrokAuthtokenInput.asStateFlow()
 
@@ -179,6 +184,8 @@ class MainViewModel
                     _hostnameError.value = null
                     _ngrokAuthtokenInput.value = config.ngrokAuthtoken
                     _ngrokDomainInput.value = config.ngrokDomain
+                    _zrokEnableTokenInput.value = config.zrokEnableToken
+                    _zrokReservedNameInput.value = config.zrokReservedName
                     _cloudflareTokenInput.value = config.cloudflareTunnelToken
                     _cloudflareExtraArgsInput.value = config.cloudflareTunnelExtraArgs
                     _selfHostedUrlInput.value = config.selfHostedTunnelUrl
@@ -394,6 +401,39 @@ class MainViewModel
             _ngrokDomainInput.value = domain
             viewModelScope.launch(ioDispatcher) {
                 settingsRepository.updateNgrokDomain(domain)
+            }
+        }
+
+        fun updateZrokEnableToken(token: String) {
+            _zrokEnableTokenInput.value = token
+            viewModelScope.launch(ioDispatcher) {
+                settingsRepository.updateZrokEnableToken(token)
+            }
+        }
+
+        fun updateZrokReservedName(name: String) {
+            _zrokReservedNameInput.value = name
+            viewModelScope.launch(ioDispatcher) {
+                settingsRepository.updateZrokReservedName(name)
+            }
+        }
+
+        /**
+         * Configures zrok and starts MCP after all settings are durably written.
+         * No VPS, remote shell, or public inbound address is necessary.
+         */
+        fun activateZrok(context: Context, newToken: String, name: String) {
+            viewModelScope.launch(ioDispatcher) {
+                if (newToken.isNotBlank()) {
+                    settingsRepository.updateZrokEnableToken(newToken.trim())
+                }
+                settingsRepository.updateZrokReservedName(name.trim())
+                settingsRepository.updateTunnelProvider(TunnelProviderType.ZROK)
+                settingsRepository.updateTunnelEnabled(true)
+                val status = McpServerService.serverStatus.value
+                if (status is ServerStatus.Stopped || status is ServerStatus.Error) {
+                    startServer(context.applicationContext)
+                }
             }
         }
 
