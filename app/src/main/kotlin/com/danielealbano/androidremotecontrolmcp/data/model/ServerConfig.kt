@@ -63,15 +63,6 @@ data class ServerConfig(
     val tunnelProvider: TunnelProviderType = TunnelProviderType.ARC_TUNNEL,
     val ngrokAuthtoken: String = "",
     val ngrokDomain: String = "",
-    /** Remote frps address, publicly reachable by the Android client. */
-    val frpServerHost: String = "",
-    val frpServerPort: Int = 7000,
-    /** frps authentication token, never put into a public URL. */
-    val frpAuthToken: String = "",
-    /** Unprivileged TCP port bound ONLY to frps localhost, behind trusted HTTPS reverse proxy. */
-    val frpRemotePort: Int = 18080,
-    /** Public HTTPS origin configured on the server reverse proxy, for MCP links. */
-    val frpPublicUrl: String = "",
     val cloudflareTunnelMode: CloudflareTunnelMode = CloudflareTunnelMode.FREE,
     val cloudflareTunnelToken: String = "",
     val cloudflareTunnelExtraArgs: String = "",
