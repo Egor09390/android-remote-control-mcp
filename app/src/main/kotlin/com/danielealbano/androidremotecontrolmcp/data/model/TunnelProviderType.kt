@@ -17,6 +17,9 @@ enum class TunnelProviderType(
     /** ngrok tunnel — requires authtoken, supports stable domains. */
     NGROK("NGROK"),
 
+    /** FRP client connecting to a separately operated public frps server. */
+    FRP("FRP"),
+
     /** Owner-operated reverse tunnel hosted on a private VPS. */
     SELF_HOSTED("SELF_HOSTED"),
     ;
