@@ -410,6 +410,25 @@ class MainViewModel
             }
         }
 
+        /**
+         * User-selected, VPS-free ngrok connection. The authtoken is entered on the
+         * device; it must never be put in source control or passed through the chat.
+         * Write all settings before starting the service to avoid a tunnel race.
+         */
+        fun activateNgrok(context: Context, newAuthtoken: String) {
+            viewModelScope.launch(ioDispatcher) {
+                val token = newAuthtoken.trim()
+                if (token.isNotEmpty()) settingsRepository.updateNgrokAuthtoken(token)
+                if (settingsRepository.getServerConfig().ngrokAuthtoken.isBlank()) return@launch
+                settingsRepository.updateTunnelProvider(TunnelProviderType.NGROK)
+                settingsRepository.updateTunnelEnabled(true)
+                val status = McpServerService.serverStatus.value
+                if (status is ServerStatus.Stopped || status is ServerStatus.Error) {
+                    startServer(context.applicationContext)
+                }
+            }
+        }
+
         /** Turn on owner-operated VPS tunnel after SSH installation, starting MCP if stopped. */
         fun activateOwnVps(context: Context, baseUrl: String, secret: String) {
             viewModelScope.launch(ioDispatcher) {
