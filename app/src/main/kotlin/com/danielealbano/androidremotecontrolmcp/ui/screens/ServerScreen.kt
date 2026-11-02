@@ -54,6 +54,7 @@ import com.danielealbano.androidremotecontrolmcp.services.tunnel.arctunnel.ArcTu
 import com.danielealbano.androidremotecontrolmcp.ui.ApprovalActivity
 import com.danielealbano.androidremotecontrolmcp.ui.components.BatteryOptimizationCard
 import com.danielealbano.androidremotecontrolmcp.ui.components.CalloutCard
+import com.danielealbano.androidremotecontrolmcp.ui.components.NgrokQuickSetupCard
 import com.danielealbano.androidremotecontrolmcp.ui.components.OwnVpsSetupCard
 import com.danielealbano.androidremotecontrolmcp.ui.components.ChatGptConnectorCard
 import com.danielealbano.androidremotecontrolmcp.ui.components.ConnectionInfoCard
@@ -111,6 +112,7 @@ fun ServerScreen(
     val deviceIp = remember(context) { NetworkUtils.getDeviceIpAddress(context) }
     val copiedToClipboardMessage = stringResource(R.string.copied_to_clipboard)
     var showChannelNotConfiguredDialog by remember { mutableStateOf(false) }
+    var showLegacyVpsSetup by remember { mutableStateOf(false) }
 
     Column(modifier = modifier.fillMaxSize()) {
         TopAppBar(
@@ -124,14 +126,25 @@ fun ServerScreen(
                     .verticalScroll(rememberScrollState())
                     .padding(16.dp),
         ) {
-            OwnVpsSetupCard(
+            NgrokQuickSetupCard(
                 config = serverConfig,
-                onArtemisPortsChanged = viewModel::updateArtemisPorts,
-                onRootAdbChanged = viewModel::updateArtemisRootAdb,
-                onConfigured = { baseUrl, secret ->
-                    viewModel.activateOwnVps(context, baseUrl, secret)
-                },
+                serverStatus = serverStatus,
+                onEnable = { newToken -> viewModel.activateNgrok(context, newToken) },
             )
+            Spacer(Modifier.height(8.dp))
+            TextButton(onClick = { showLegacyVpsSetup = !showLegacyVpsSetup }) {
+                Text(stringResource(R.string.ngrok_quick_vps_advanced))
+            }
+            if (showLegacyVpsSetup) {
+                OwnVpsSetupCard(
+                    config = serverConfig,
+                    onArtemisPortsChanged = viewModel::updateArtemisPorts,
+                    onRootAdbChanged = viewModel::updateArtemisRootAdb,
+                    onConfigured = { baseUrl, secret ->
+                        viewModel.activateOwnVps(context, baseUrl, secret)
+                    },
+                )
+            }
             Spacer(Modifier.height(16.dp))
 
             if (!isAccessibilityEnabled) {
