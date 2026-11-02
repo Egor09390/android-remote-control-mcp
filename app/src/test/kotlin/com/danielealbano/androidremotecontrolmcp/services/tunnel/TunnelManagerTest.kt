@@ -29,6 +29,10 @@ import javax.inject.Provider
 class TunnelManagerTest {
     private val mockCloudflareProvider = mockk<CloudflareTunnelProvider>(relaxed = true)
     private val mockNgrokProvider = mockk<NgrokTunnelProvider>(relaxed = true)
+    private val mockZrokProvider = mockk<ZrokTunnelProvider>(relaxed = true)
+    private val zrokFactory = mockk<Provider<ZrokTunnelProvider>> {
+        every { get() } returns mockZrokProvider
+    }
     private val mockSelfHostedProvider = mockk<SelfHostedTunnelProvider>(relaxed = true)
     private val selfHostedFactory =
         mockk<Provider<SelfHostedTunnelProvider>> {
@@ -60,6 +64,7 @@ class TunnelManagerTest {
         TunnelManager(
             cloudflareTunnelProviderFactory = cloudflareFactory,
             ngrokTunnelProviderFactory = ngrokFactory,
+            zrokTunnelProviderFactory = zrokFactory,
             selfHostedTunnelProviderFactory = selfHostedFactory,
             arcTunnelProviderFactory = arcFactory,
             serverLogRepository = serverLog,
@@ -102,6 +107,18 @@ class TunnelManagerTest {
                 manager.start(config, listenerHost)
 
                 coVerify { mockNgrokProvider.start(8080, config) }
+            }
+
+        @Test
+        fun `start with zrok enabled starts the zrok provider`() =
+            runTest {
+                val config = ServerConfig(tunnelEnabled = true, tunnelProvider = TunnelProviderType.ZROK)
+                every { mockZrokProvider.status } returns MutableStateFlow(TunnelStatus.Disconnected)
+                coEvery { mockZrokProvider.start(8080, config) } just Runs
+
+                createManager().start(config, listenerHost)
+
+                coVerify { mockZrokProvider.start(8080, config) }
             }
 
         @Test
