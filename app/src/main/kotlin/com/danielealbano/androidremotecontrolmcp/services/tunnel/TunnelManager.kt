@@ -32,6 +32,7 @@ class TunnelManager
     constructor(
         private val cloudflareTunnelProviderFactory: Provider<CloudflareTunnelProvider>,
         private val ngrokTunnelProviderFactory: Provider<NgrokTunnelProvider>,
+        private val zrokTunnelProviderFactory: Provider<ZrokTunnelProvider>,
         private val selfHostedTunnelProviderFactory: Provider<SelfHostedTunnelProvider>,
         private val arcTunnelProviderFactory: Provider<ArcTunnelProvider>,
         private val serverLogRepository: ServerLogRepository,
@@ -60,6 +61,7 @@ class TunnelManager
                         TunnelProviderType.ARC_TUNNEL -> arcTunnelProviderFactory.get().also { it.bind(listenerHost) }
                         TunnelProviderType.CLOUDFLARE -> cloudflareTunnelProviderFactory.get()
                         TunnelProviderType.NGROK -> ngrokTunnelProviderFactory.get()
+                        TunnelProviderType.ZROK -> zrokTunnelProviderFactory.get()
                         TunnelProviderType.SELF_HOSTED -> selfHostedTunnelProviderFactory.get()
                     }
 
