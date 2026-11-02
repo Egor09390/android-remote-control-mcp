@@ -60,6 +60,8 @@ private val TUNNEL_ENABLED_KEY = booleanPreferencesKey("tunnel_enabled")
 private val TUNNEL_PROVIDER_KEY = stringPreferencesKey("tunnel_provider")
 private val NGROK_AUTHTOKEN_KEY = stringPreferencesKey("ngrok_authtoken")
 private val NGROK_DOMAIN_KEY = stringPreferencesKey("ngrok_domain")
+private val ZROK_ENABLE_TOKEN_KEY = stringPreferencesKey("zrok_enable_token")
+private val ZROK_RESERVED_NAME_KEY = stringPreferencesKey("zrok_reserved_name")
 private val CLOUDFLARE_TUNNEL_MODE_KEY = stringPreferencesKey("cloudflare_tunnel_mode")
 private val CLOUDFLARE_TUNNEL_TOKEN_KEY = stringPreferencesKey("cloudflare_tunnel_token")
 private val CLOUDFLARE_TUNNEL_EXTRA_ARGS_KEY = stringPreferencesKey("cloudflare_tunnel_extra_args")
@@ -137,6 +139,8 @@ private fun mapPreferencesToServerConfig(prefs: Preferences): ServerConfig {
                 ?: TunnelProviderType.ARC_TUNNEL,
         ngrokAuthtoken = prefs[NGROK_AUTHTOKEN_KEY] ?: "",
         ngrokDomain = prefs[NGROK_DOMAIN_KEY] ?: "",
+        zrokEnableToken = prefs[ZROK_ENABLE_TOKEN_KEY] ?: "",
+        zrokReservedName = prefs[ZROK_RESERVED_NAME_KEY] ?: "",
         cloudflareTunnelMode =
             CloudflareTunnelMode.entries.firstOrNull { it.name == cloudflareTunnelModeName }
                 ?: CloudflareTunnelMode.FREE,
@@ -557,6 +561,16 @@ class SettingsRepositoryImpl
 
         override suspend fun updateNgrokDomain(domain: String) =
             logScalarChange(NGROK_DOMAIN_KEY, "ngrok_domain", domain, "") { o, n -> "ngrok domain changed $o → $n" }
+
+        override suspend fun updateZrokEnableToken(token: String) =
+            logScalarChange(ZROK_ENABLE_TOKEN_KEY, "zrok_enable_token", token, "") { _, _ ->
+                "zrok enrollment token updated"
+            }
+
+        override suspend fun updateZrokReservedName(name: String) =
+            logScalarChange(ZROK_RESERVED_NAME_KEY, "zrok_reserved_name", name.trim(), "") { _, _ ->
+                "zrok reserved name updated"
+            }
 
         override suspend fun updateCloudflareTunnelMode(mode: CloudflareTunnelMode) =
             logScalarChange(
