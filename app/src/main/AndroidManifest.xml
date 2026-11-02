@@ -25,9 +25,10 @@
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
 
-    <!-- Location (background-location is geofence-only → declared in the gms flavor manifest) -->
+    <!-- Location for Android automation, including commands received while the UI is in background. -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
 
     <!-- WiFi (Event Channel) -->
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />

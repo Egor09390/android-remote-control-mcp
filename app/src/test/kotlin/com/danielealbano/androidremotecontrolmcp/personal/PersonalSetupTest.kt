@@ -9,7 +9,7 @@ import com.danielealbano.androidremotecontrolmcp.data.repository.SettingsReposit
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
-import io.mockk.verify
+import io.mockk.confirmVerified
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
@@ -43,6 +43,6 @@ class PersonalSetupTest {
         assertFalse(state.items.first { it.id == "root" }.granted)
         assertNotNull(state.message)
         assertFalse(File(temp, "files/datastore/settings.preferences_pb").exists())
-        verify { settings wasNot Called }
+        confirmVerified(settings)
     }
 }

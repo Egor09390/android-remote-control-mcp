@@ -211,6 +211,7 @@ class PersonalSetup @Inject constructor(
             "RECORD_AUDIO" -> "Микрофон"
             "ACCESS_FINE_LOCATION" -> "Точная геопозиция"
             "ACCESS_COARSE_LOCATION" -> "Примерная геопозиция"
+            "ACCESS_BACKGROUND_LOCATION" -> "Фоновая геопозиция"
             "READ_MEDIA_IMAGES" -> "Фотографии"
             "READ_MEDIA_VIDEO" -> "Видео"
             "READ_MEDIA_AUDIO" -> "Аудиофайлы"
