@@ -83,6 +83,8 @@ fun TunnelSettingsScreen(
     val serverConfig by viewModel.serverConfig.collectAsStateWithLifecycle()
     val serverStatus by viewModel.serverStatus.collectAsStateWithLifecycle()
     val tunnelStatus by viewModel.tunnelStatus.collectAsStateWithLifecycle()
+    val zrokEnableTokenInput by viewModel.zrokEnableTokenInput.collectAsStateWithLifecycle()
+    val zrokReservedNameInput by viewModel.zrokReservedNameInput.collectAsStateWithLifecycle()
     val ngrokAuthtokenInput by viewModel.ngrokAuthtokenInput.collectAsStateWithLifecycle()
     val ngrokDomainInput by viewModel.ngrokDomainInput.collectAsStateWithLifecycle()
     val cloudflareTokenInput by viewModel.cloudflareTokenInput.collectAsStateWithLifecycle()
@@ -258,6 +260,20 @@ fun TunnelSettingsScreen(
                 }
             }
 
+            // zrok2 public share: secret account enrollment and optional reserved name.
+            AnimatedVisibility(visible = serverConfig.tunnelProvider == TunnelProviderType.ZROK) {
+                Column {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    ZrokConfigFields(
+                        enableToken = zrokEnableTokenInput,
+                        reservedName = zrokReservedNameInput,
+                        enabled = isEnabled,
+                        onEnableTokenChange = viewModel::updateZrokEnableToken,
+                        onReservedNameChange = viewModel::updateZrokReservedName,
+                    )
+                }
+            }
+
             // ngrok-specific fields
             AnimatedVisibility(visible = serverConfig.tunnelProvider == TunnelProviderType.NGROK) {
                 Column {
@@ -335,6 +351,7 @@ private fun providerTitle(provider: TunnelProviderType): String =
         TunnelProviderType.ARC_TUNNEL -> stringResource(R.string.remote_access_provider_arc_tunnel)
         TunnelProviderType.CLOUDFLARE -> stringResource(R.string.remote_access_provider_cloudflare)
         TunnelProviderType.NGROK -> stringResource(R.string.remote_access_provider_ngrok)
+        TunnelProviderType.ZROK -> stringResource(R.string.remote_access_provider_zrok)
         TunnelProviderType.SELF_HOSTED -> stringResource(R.string.remote_access_provider_self_hosted)
     }
 
@@ -344,6 +361,7 @@ private fun providerDescription(provider: TunnelProviderType): String =
         TunnelProviderType.ARC_TUNNEL -> stringResource(R.string.remote_access_provider_arc_tunnel_desc)
         TunnelProviderType.CLOUDFLARE -> stringResource(R.string.remote_access_provider_cloudflare_desc)
         TunnelProviderType.NGROK -> stringResource(R.string.remote_access_provider_ngrok_desc)
+        TunnelProviderType.ZROK -> stringResource(R.string.remote_access_provider_zrok_desc)
         TunnelProviderType.SELF_HOSTED -> stringResource(R.string.remote_access_provider_self_hosted_desc)
     }
 
@@ -372,6 +390,37 @@ private fun OwnVpsConfigFields(
             singleLine = true,
             enabled = enabled,
             visualTransformation = PasswordVisualTransformation(),
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
+}
+
+@Composable
+private fun ZrokConfigFields(
+    enableToken: String,
+    reservedName: String,
+    enabled: Boolean,
+    onEnableTokenChange: (String) -> Unit,
+    onReservedNameChange: (String) -> Unit,
+) {
+    Column {
+        OutlinedTextField(
+            value = enableToken,
+            onValueChange = onEnableTokenChange,
+            label = { Text(stringResource(R.string.zrok_quick_token_label)) },
+            visualTransformation = PasswordVisualTransformation(),
+            singleLine = true,
+            enabled = enabled,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        OutlinedTextField(
+            value = reservedName,
+            onValueChange = onReservedNameChange,
+            label = { Text(stringResource(R.string.zrok_quick_name_label)) },
+            supportingText = { Text(stringResource(R.string.zrok_quick_name_hint)) },
+            singleLine = true,
+            enabled = enabled,
             modifier = Modifier.fillMaxWidth(),
         )
     }
