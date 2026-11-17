@@ -10,7 +10,7 @@ The alternative `.devcontainer/kvm/devcontainer.json` explicitly forwards `--dev
 
 ## What to do
 
-Create a Codespace on the repository's `main` branch. Use **4 cores / 16 GB RAM** or larger, potentially billed by GitHub. It automatically downloads Android 17 (API 37.0 SDK packaging), and tries to start it.
+Create a Codespace on the repository's `main` branch. Use **4 cores / 16 GB RAM** or larger, potentially billed by GitHub. It automatically downloads Android 17 (API 37.0 SDK packaging), and tries to start it and provisions the Android Remote Control MCP APK from your own GitHub release. MCP stays bound to localhost behind ADB forwarding and a private token, NOT exposed to the Internet.
 
 In the Codespaces terminal:
 
@@ -19,6 +19,8 @@ bash .devcontainer/android17.sh diagnose
 bash .devcontainer/android17.sh status
 bash .devcontainer/android17.sh start
 bash .devcontainer/android17.sh test
+bash .devcontainer/android17.sh mcp-setup
+bash .devcontainer/android17.sh mcp-test
 ```
 
 - `KVM_ACCESS=ok` is required to boot with hardware acceleration.
@@ -26,6 +28,6 @@ bash .devcontainer/android17.sh test
 - `KVM_ACCESS=missing` means **this Codespace cannot use this emulator**, not that the Android installation failed.
 - `bash .devcontainer/android17.sh stop` stops it.
 
-A Codespace can be stopped at idle (default 30 minutes); its workspace survives stops but is deleted after the applicable retention period. **This is not 24/7 hosting.** This configuration avoids publishing the ADB port and does not automatically connect ChatGPT to Android; installing and securing the Android MCP inside the guest is a separate step.
+A Codespace can be stopped at idle (default 30 minutes); its workspace survives stops but is deleted after the applicable retention period. **This is not 24/7 hosting.** This configuration avoids publishing the ADB port and does not automatically connect the on-device MCP to the ChatGPT cloud; a secured, authenticated remote tunnel/connection is still required.
 
 The automated GitHub Actions test (`.github/workflows/codespaces-android17-check.yml`) exercises this SAME script on a Linux runner with KVM and validates the config. It **cannot verify the KVM device in a real Codespace**.
