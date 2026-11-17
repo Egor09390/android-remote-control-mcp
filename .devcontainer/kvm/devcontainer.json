@@ -11,6 +11,6 @@
     "--device=/dev/kvm"
   ],
   "postCreateCommand": "bash .devcontainer/android17.sh install",
-  "postStartCommand": "bash .devcontainer/android17.sh start",
+  "postStartCommand": "bash .devcontainer/android17.sh provision",
   "remoteUser": "vscode"
 }
