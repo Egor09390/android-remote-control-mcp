@@ -7,7 +7,7 @@
     "storage": "32gb"
   },
   "postCreateCommand": "bash .devcontainer/android17.sh install",
-  "postStartCommand": "bash .devcontainer/android17.sh start || echo 'Android emulator cannot start: check /dev/kvm. Run bash .devcontainer/android17.sh diagnose.'",
+  "postStartCommand": "bash .devcontainer/android17.sh provision || echo 'Android emulator cannot start: check /dev/kvm. Run bash .devcontainer/android17.sh diagnose.'",
   "remoteUser": "vscode",
   "features": {},
   "customizations": {
