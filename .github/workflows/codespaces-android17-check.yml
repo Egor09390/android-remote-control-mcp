@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 35
     env:
-      ANDROID_CODESPACE_HOME: ${{ runner.temp }}/android17
+      ANDROID_CODESPACE_HOME: /tmp/android17
     steps:
       - uses: actions/checkout@v4
       - name: Validate devcontainer config and bash
