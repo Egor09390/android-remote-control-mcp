@@ -129,9 +129,74 @@ test_device() {
   echo "PASS: headless Android 17 booted and ADB is responsive."
 }
 
+mcp_setup() {
+  test_device
+  local apk="$STATE/android-mcp-ru.apk"
+  local pkg="com.danielealbano.androidremotecontrolmcp"
+  local adb="$SDK/platform-tools/adb"
+  if [[ ! -s "$apk" ]]; then
+    echo "Downloading your Android Remote Control MCP APK from your GitHub release..."
+    curl -fL --retry 3 \
+      "https://github.com/Egor09390/android-remote-control-mcp/releases/download/ru-build/android-remote-control-mcp-ru-gms-release.apk" \
+      -o "$apk"
+  fi
+  if ! "$adb" shell pm list packages | grep -q "package:$pkg"; then
+    echo "Installing Android MCP APK..."
+    "$adb" install -r "$apk"
+  fi
+  "$adb" shell settings put secure enabled_accessibility_services \
+    "$pkg/com.danielealbano.androidremotecontrolmcp.services.accessibility.McpAccessibilityService"
+  "$adb" shell settings put secure accessibility_enabled 1
+  if [[ ! -s "$STATE/mcp-token" ]]; then
+    (umask 077; od -An -tx1 -N32 /dev/urandom | tr -d ' \n' >"$STATE/mcp-token")
+  fi
+  local token
+  token="$(cat "$STATE/mcp-token")"
+  "$adb" shell am broadcast \
+    -a com.danielealbano.androidremotecontrolmcp.ADB_CONFIGURE \
+    -n "$pkg/com.danielealbano.androidremotecontrolmcp.services.mcp.AdbConfigReceiver" \
+    --es bearer_token "$token" \
+    --ez bearer_token_enabled true \
+    --es binding_address 127.0.0.1 --ei port 8080 \
+    --ez auto_start_on_boot true --ez tunnel_enabled false
+  "$adb" shell am start \
+    -n "$pkg/com.danielealbano.androidremotecontrolmcp.services.mcp.AdbServiceTrampolineActivity" \
+    --es action start
+  "$adb" forward tcp:18080 tcp:8080
+  echo "MCP configured with auth, only locally at http://127.0.0.1:18080/mcp"
+  echo "Token stays in $STATE/mcp-token and is not displayed."
+}
+
+mcp_test() {
+  local token response i
+  if [[ ! -s "$STATE/mcp-token" ]]; then
+    echo "FAIL: MCP token not configured." >&2
+    return 1
+  fi
+  token="$(cat "$STATE/mcp-token")"
+  for ((i=1; i<=30; i++)); do
+    response="$(curl -fsS --max-time 4 \
+      -H "Authorization: Bearer $token" \
+      -H "Content-Type: application/json" \
+      -H "Accept: application/json, text/event-stream" \
+      -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}' \
+      "http://127.0.0.1:18080/mcp" 2>/dev/null || true)"
+    if [[ "$response" == *'"tools"'* ]]; then
+      echo "PASS: Android MCP responds to authenticated tools/list on localhost."
+      return 0
+    fi
+    sleep 2
+  done
+  echo "FAIL: Android MCP did not respond correctly. Inspect adb logcat." >&2
+  return 1
+}
+
 case "${1:-status}" in
   install) install_sdk ;;
   start) start ;;
+  provision) start; test_device; mcp_setup; mcp_test ;;
+  mcp-setup) mcp_setup ;;
+  mcp-test) mcp_test ;;
   test) test_device ;;
   diagnose) diag ;;
   status)
@@ -143,6 +208,6 @@ case "${1:-status}" in
     if [[ -x "$SDK/platform-tools/adb" ]]; then "$SDK/platform-tools/adb" emu kill || true; fi
     ;;
   *)
-    echo "Usage: $0 {install|start|test|diagnose|status|stop}" >&2
+    echo "Usage: $0 {install|start|test|provision|mcp-setup|mcp-test|diagnose|status|stop}" >&2
     exit 2 ;;
 esac
