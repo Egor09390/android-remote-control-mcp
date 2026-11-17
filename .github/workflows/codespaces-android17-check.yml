@@ -35,6 +35,10 @@ jobs:
         run: bash .devcontainer/android17.sh start
       - name: Verify Android 17 API 37 over ADB
         run: bash .devcontainer/android17.sh test
+      - name: Install and configure Android MCP APK
+        run: bash .devcontainer/android17.sh mcp-setup
+      - name: Verify MCP tools/list through ADB forwarded localhost
+        run: bash .devcontainer/android17.sh mcp-test
       - name: Stop emulator
         if: always()
         run: bash .devcontainer/android17.sh stop || true
