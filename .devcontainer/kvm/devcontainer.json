@@ -1,0 +1,16 @@
+{
+  "name": "Android 17 headless (Codespaces - experimental KVM passthrough)",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu-24.04",
+  "hostRequirements": {
+    "cpus": 4,
+    "memory": "16gb",
+    "storage": "32gb"
+  },
+  "privileged": true,
+  "runArgs": [
+    "--device=/dev/kvm"
+  ],
+  "postCreateCommand": "bash .devcontainer/android17.sh install",
+  "postStartCommand": "bash .devcontainer/android17.sh start",
+  "remoteUser": "vscode"
+}
