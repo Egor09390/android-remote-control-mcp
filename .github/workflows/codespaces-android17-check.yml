@@ -1,0 +1,40 @@
+name: Codespaces Android 17 config and runtime check
+
+on:
+  push:
+    paths:
+      - '.devcontainer/**'
+      - '.github/workflows/codespaces-android17-check.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check-setup:
+    name: Check devcontainer + boot Android 17 on runner
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      ANDROID_CODESPACE_HOME: ${{ runner.temp }}/android17
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate devcontainer config and bash
+        run: |
+          python3 -m json.tool .devcontainer/devcontainer.json >/dev/null
+          python3 -m json.tool .devcontainer/kvm/devcontainer.json >/dev/null
+          bash -n .devcontainer/android17.sh
+          test "$(python3 -c 'import json; print(json.load(open(".devcontainer/devcontainer.json"))["hostRequirements"]["memory"])')" = "16gb"
+      - name: Confirm host KVM
+        run: |
+          ls -l /dev/kvm
+          sudo chmod a+rw /dev/kvm
+      - name: Install Android 17 using Codespace script
+        run: bash .devcontainer/android17.sh install
+      - name: Boot headless Android 17 using Codespace script
+        run: bash .devcontainer/android17.sh start
+      - name: Verify Android 17 API 37 over ADB
+        run: bash .devcontainer/android17.sh test
+      - name: Stop emulator
+        if: always()
+        run: bash .devcontainer/android17.sh stop || true
