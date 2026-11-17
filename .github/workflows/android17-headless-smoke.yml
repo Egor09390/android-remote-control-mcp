@@ -1,0 +1,43 @@
+name: Android 17 headless smoke test
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - .github/workflows/android17-headless-smoke.yml
+
+permissions:
+  contents: read
+
+jobs:
+  emulator-smoke:
+    name: Boot API 37 and verify ADB
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check KVM
+        run: |
+          uname -a
+          ls -l /dev/kvm
+          test -e /dev/kvm
+
+      - name: Enable KVM access
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Start headless Android 17 emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 37
+          target: google_apis
+          arch: x86_64
+          ram-size: 4096M
+          emulator-options: -no-window -gpu software -no-audio -no-boot-anim -no-snapshot -camera-back none -camera-front none
+          script: |
+            adb devices -l
+            adb shell getprop sys.boot_completed
+            adb shell getprop ro.build.version.release
+            adb shell getprop ro.build.version.sdk
+            test "$(adb shell getprop ro.build.version.sdk | tr -d '\r')" = "37"
