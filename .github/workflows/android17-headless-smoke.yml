@@ -2,6 +2,9 @@ name: Android 17 headless smoke test
 
 on:
   workflow_dispatch:
+  pull_request:
+    paths:
+      - .github/workflows/android17-headless-smoke.yml
   push:
     paths:
       - .github/workflows/android17-headless-smoke.yml
