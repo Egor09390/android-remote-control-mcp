@@ -1,0 +1,18 @@
+{
+  "name": "Android 17 headless (Codespaces - KVM probe)",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu-24.04",
+  "hostRequirements": {
+    "cpus": 4,
+    "memory": "16gb",
+    "storage": "32gb"
+  },
+  "postCreateCommand": "bash .devcontainer/android17.sh install",
+  "postStartCommand": "bash .devcontainer/android17.sh start || echo 'Android emulator cannot start: check /dev/kvm. Run bash .devcontainer/android17.sh diagnose.'",
+  "remoteUser": "vscode",
+  "features": {},
+  "customizations": {
+    "vscode": {
+      "extensions": []
+    }
+  }
+}
