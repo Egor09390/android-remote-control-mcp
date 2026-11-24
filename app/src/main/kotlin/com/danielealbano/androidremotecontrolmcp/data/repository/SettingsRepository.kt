@@ -182,6 +182,8 @@ interface SettingsRepository :
     /** CloudPub API token, entered only on the device. */
     suspend fun updateCloudpubToken(token: String)
 
+    suspend fun updateLocalArtemisToken(token: String)
+
     /** Updates the ngrok authtoken. */
     suspend fun updateNgrokAuthtoken(authtoken: String)
 

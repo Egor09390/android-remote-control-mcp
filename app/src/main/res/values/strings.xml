@@ -575,4 +575,10 @@
     <string name="cloudpub_quick_configured">CloudPub selected. The connection link appears after the public endpoint passes a health check.</string>
     <string name="cloudpub_quick_not_configured">Enter a token to select CloudPub.</string>
     <string name="cloudpub_quick_artemis_note">Keep the token private. This connects the current Android MCP server; full ARTEMIS is not integrated.</string>
+    <string name="local_artemis_title">ARTEMIS on this phone</string>
+    <string name="local_artemis_details">Start ARTEMIS in Termux and save its local token with MCP stopped. Restart MCP to add its tools. They require MCP authentication and can access unredacted device data while Privacy Mode is off.</string>
+    <string name="local_artemis_token">Local ARTEMIS token</string>
+    <string name="local_artemis_saved">Token saved</string>
+    <string name="local_artemis_save">Save ARTEMIS token</string>
+    <string name="local_artemis_disable">Disable ARTEMIS tools</string>
 </resources>

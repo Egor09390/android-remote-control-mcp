@@ -38,6 +38,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.danielealbano.androidremotecontrolmcp.data.model.ServerStatus
 import com.danielealbano.androidremotecontrolmcp.data.model.TunnelStatus
 import com.danielealbano.androidremotecontrolmcp.ui.ApprovalActivity
+import com.danielealbano.androidremotecontrolmcp.ui.components.LocalArtemisSettings
 import com.danielealbano.androidremotecontrolmcp.ui.theme.AndroidRemoteControlMcpTheme
 import com.danielealbano.androidremotecontrolmcp.ui.viewmodels.MainViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -174,7 +175,7 @@ private fun PersonalControlPanel(state: SetupState, setup: PersonalSetup, model:
     }
     if (showSettings) {
         ModalBottomSheet(onDismissRequest = { showSettings = false }, containerColor = CardSurface) {
-            Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp).padding(bottom = 28.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 24.dp).padding(bottom = 28.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Text("Настройки", style = MaterialTheme.typography.titleLarge)
                 OutlinedTextField(token, { token = it.trim() }, label = { Text("Токен CloudPub") },
                     placeholder = { Text(if (config.cloudpubToken.isNotBlank()) "Сохранён" else "Из личного кабинета CloudPub") },
@@ -191,6 +192,11 @@ private fun PersonalControlPanel(state: SetupState, setup: PersonalSetup, model:
                     autoStarted = true
                     showSettings = false
                 }, enabled = !running && !busy && (token.isNotBlank() || config.cloudpubToken.isNotBlank()), modifier = Modifier.fillMaxWidth()) { Text("Сохранить и подключить") }
+                LocalArtemisSettings(
+                    configured = config.localArtemisToken.isNotBlank(),
+                    canSave = !running && !busy,
+                    onSave = model::updateLocalArtemisToken,
+                )
             }
         }
     }

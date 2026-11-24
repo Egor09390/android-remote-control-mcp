@@ -28,6 +28,7 @@ import com.danielealbano.androidremotecontrolmcp.mcp.oauth.AuthorizationCodeStor
 import com.danielealbano.androidremotecontrolmcp.mcp.oauth.JwtTokenService
 import com.danielealbano.androidremotecontrolmcp.mcp.oauth.OAuthApprovalCoordinator
 import com.danielealbano.androidremotecontrolmcp.mcp.oauth.OAuthServerDeps
+import com.danielealbano.androidremotecontrolmcp.mcp.tools.LocalArtemisTools
 import com.danielealbano.androidremotecontrolmcp.mcp.tools.McpToolUtils
 import com.danielealbano.androidremotecontrolmcp.privacy.PrivacyModeManager
 import com.danielealbano.androidremotecontrolmcp.privacy.PrivacyModeStatus
@@ -242,7 +243,8 @@ class McpServerService : Service() {
                 effectivePerms,
                 config.fileSizeLimitMb,
                 config.toolCallIndicatorEnabled,
-                currentBaseUrl,
+                localArtemis = LocalArtemisTools.forConfig(config) { settingsRepository.getServerConfig() },
+                currentBaseUrl = currentBaseUrl,
             )
 
             // Create and start the Ktor server

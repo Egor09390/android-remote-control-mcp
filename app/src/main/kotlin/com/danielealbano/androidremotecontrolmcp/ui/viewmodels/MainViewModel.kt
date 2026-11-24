@@ -394,6 +394,10 @@ class MainViewModel
             }
         }
 
+        fun updateLocalArtemisToken(token: String) {
+            viewModelScope.launch(ioDispatcher) { settingsRepository.updateLocalArtemisToken(token) }
+        }
+
         /** Save before starting the service, so the tunnel receives the selected token/provider. */
         fun activateCloudpub(context: Context, newToken: String) {
             viewModelScope.launch(ioDispatcher) {

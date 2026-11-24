@@ -519,4 +519,10 @@
     <string name="cloudpub_quick_configured">CloudPub выбран. Ссылка появится после проверки доступности MCP через интернет.</string>
     <string name="cloudpub_quick_not_configured">Введи токен, чтобы выбрать CloudPub.</string>
     <string name="cloudpub_quick_artemis_note">Не передавай токен другим. Подключается текущий Android MCP; полный ARTEMIS ещё не интегрирован.</string>
+    <string name="local_artemis_title">ARTEMIS на этом телефоне</string>
+    <string name="local_artemis_details">Запустите ARTEMIS в Termux и сохраните локальный токен при остановленном MCP. После запуска MCP появятся инструменты ARTEMIS. Для них нужна авторизация MCP. Они получают данные устройства без скрытия при выключенном режиме приватности.</string>
+    <string name="local_artemis_token">Локальный токен ARTEMIS</string>
+    <string name="local_artemis_saved">Токен сохранён</string>
+    <string name="local_artemis_save">Сохранить токен ARTEMIS</string>
+    <string name="local_artemis_disable">Отключить инструменты ARTEMIS</string>
 </resources>

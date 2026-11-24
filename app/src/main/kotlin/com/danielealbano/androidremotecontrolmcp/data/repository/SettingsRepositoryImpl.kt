@@ -59,6 +59,7 @@ private val CERTIFICATE_HOSTNAME_KEY = stringPreferencesKey("certificate_hostnam
 private val TUNNEL_ENABLED_KEY = booleanPreferencesKey("tunnel_enabled")
 private val TUNNEL_PROVIDER_KEY = stringPreferencesKey("tunnel_provider")
 private val CLOUDPUB_TOKEN_KEY = stringPreferencesKey("cloudpub_token")
+private val LOCAL_ARTEMIS_TOKEN_KEY = stringPreferencesKey("local_artemis_token")
 private val NGROK_AUTHTOKEN_KEY = stringPreferencesKey("ngrok_authtoken")
 private val NGROK_DOMAIN_KEY = stringPreferencesKey("ngrok_domain")
 private val CLOUDFLARE_TUNNEL_MODE_KEY = stringPreferencesKey("cloudflare_tunnel_mode")
@@ -137,6 +138,7 @@ private fun mapPreferencesToServerConfig(prefs: Preferences): ServerConfig {
             TunnelProviderType.entries.firstOrNull { it.name == tunnelProviderName }
                 ?: TunnelProviderType.ARC_TUNNEL,
         cloudpubToken = prefs[CLOUDPUB_TOKEN_KEY] ?: "",
+        localArtemisToken = prefs[LOCAL_ARTEMIS_TOKEN_KEY] ?: "",
         ngrokAuthtoken = prefs[NGROK_AUTHTOKEN_KEY] ?: "",
         ngrokDomain = prefs[NGROK_DOMAIN_KEY] ?: "",
         cloudflareTunnelMode =
@@ -556,6 +558,9 @@ class SettingsRepositoryImpl
 
         override suspend fun updateCloudpubToken(token: String) =
             logScalarChange(CLOUDPUB_TOKEN_KEY, "cloudpub_token", token, "") { _, _ -> "CloudPub token changed" }
+
+        override suspend fun updateLocalArtemisToken(token: String) =
+            logScalarChange(LOCAL_ARTEMIS_TOKEN_KEY, "local_artemis_token", token, "") { _, _ -> "Local ARTEMIS token changed" }
 
         override suspend fun updateNgrokAuthtoken(authtoken: String) =
             logScalarChange(NGROK_AUTHTOKEN_KEY, "ngrok_authtoken", authtoken, "") { _, _ -> "ngrok authtoken changed" }

@@ -5,9 +5,11 @@ on:
   push:
     branches:
       - experiment/selfhost-android-apk
+      - feature/on-device-artemis
     paths:
       - '.github/workflows/own-vps-apk.yml'
       - 'app/**'
+      - 'deploy/artemis-local/**'
       - 'selfhost/**'
       - 'scripts/package-cloudpub.py'
       - 'build.gradle.kts'
@@ -17,7 +19,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: own-vps-android-apk
+  group: own-vps-android-apk-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -94,6 +96,7 @@ jobs:
           --tests '*PersonalSetupScriptsTest'
           --tests '*PersonalSetupTest'
           --tests '*CloudPubTunnelProviderTest'
+          --tests '*McpToolRegistrationTest'
           --tests '*TunnelManagerTest'
           --tests '*TunnelProviderTypeTest'
           --tests '*SettingsRepositoryImplTest'
@@ -177,6 +180,7 @@ jobs:
 
 
       - name: Publish verified personal APK
+        if: github.ref != 'refs/heads/feature/on-device-artemis'
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash

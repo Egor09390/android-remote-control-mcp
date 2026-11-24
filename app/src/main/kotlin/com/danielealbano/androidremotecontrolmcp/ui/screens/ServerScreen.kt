@@ -59,6 +59,7 @@ import com.danielealbano.androidremotecontrolmcp.ui.components.NgrokQuickSetupCa
 import com.danielealbano.androidremotecontrolmcp.ui.components.OwnVpsSetupCard
 import com.danielealbano.androidremotecontrolmcp.ui.components.ChatGptConnectorCard
 import com.danielealbano.androidremotecontrolmcp.ui.components.ConnectionInfoCard
+import com.danielealbano.androidremotecontrolmcp.ui.components.LocalArtemisSettings
 import com.danielealbano.androidremotecontrolmcp.ui.components.PrivacyModeCard
 import com.danielealbano.androidremotecontrolmcp.ui.components.ServerLogsSection
 import com.danielealbano.androidremotecontrolmcp.ui.components.ServerStatusCard
@@ -245,6 +246,13 @@ fun ServerScreen(
                 },
             )
 
+            Spacer(Modifier.height(16.dp))
+
+            LocalArtemisSettings(
+                configured = serverConfig.localArtemisToken.isNotBlank(),
+                canSave = serverStatus is ServerStatus.Stopped || serverStatus is ServerStatus.Error,
+                onSave = viewModel::updateLocalArtemisToken,
+            )
             Spacer(Modifier.height(16.dp))
 
             ConnectionInfoCard(

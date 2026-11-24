@@ -85,3 +85,4 @@ app/replay_*.log
 .dbip-cache/
 
 privacy-benchmark/.cache/
+deploy/artemis-local/__pycache__/

@@ -3,6 +3,7 @@ package com.danielealbano.androidremotecontrolmcp.services.mcp
 import com.danielealbano.androidremotecontrolmcp.data.model.ToolPermissionsConfig
 import com.danielealbano.androidremotecontrolmcp.data.repository.ServerLogRepository
 import com.danielealbano.androidremotecontrolmcp.mcp.InFlightToolCalls
+import com.danielealbano.androidremotecontrolmcp.mcp.tools.LocalArtemisTools
 import com.danielealbano.androidremotecontrolmcp.mcp.tools.LoggedToolRegistrar
 import com.danielealbano.androidremotecontrolmcp.mcp.tools.ReferenceCountedToolCallIndicator
 import com.danielealbano.androidremotecontrolmcp.mcp.tools.registerAppManagementTools
@@ -45,6 +46,7 @@ class McpToolRegistration
             perms: ToolPermissionsConfig,
             fileSizeLimitMb: Int,
             toolCallIndicatorEnabled: Boolean,
+            localArtemis: LocalArtemisTools? = null,
             currentBaseUrl: () -> String,
         ) {
             val toolCallIndicator = ReferenceCountedToolCallIndicator(AccessibilityToolCallIndicator())
@@ -72,6 +74,7 @@ class McpToolRegistration
             )
             registerLocationTools(registrar, d.locationProvider, privacy.privacyToolGate, toolNamePrefix, perms)
             registerSharingBundle(registrar, toolNamePrefix, perms, fileSizeLimitMb, currentBaseUrl)
+            localArtemis?.register(registrar, toolNamePrefix, perms)
         }
 
         private fun registerAccessibilityToolBundle(

@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# ARTEMIS uses -H/-P when it calls ADB. Route those calls to this user's private
+# filesystem socket as well, including subprocesses that reset ADB_SERVER_SOCKET.
+set -euo pipefail
+while [[ "${1:-}" == -H || "${1:-}" == -P ]]; do
+  shift 2
+done
+export ADB_SERVER_SOCKET="localfilesystem:${ARTEMIS_LOCAL_ADB_SOCKET:?}"
+exec "${ARTEMIS_REAL_ADB:?}" "$@"

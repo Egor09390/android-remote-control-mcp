@@ -62,6 +62,7 @@ data class ServerConfig(
     val tunnelEnabled: Boolean = false,
     val tunnelProvider: TunnelProviderType = TunnelProviderType.ARC_TUNNEL,
     val cloudpubToken: String = "",
+    val localArtemisToken: String = "",
     val ngrokAuthtoken: String = "",
     val ngrokDomain: String = "",
     val cloudflareTunnelMode: CloudflareTunnelMode = CloudflareTunnelMode.FREE,
