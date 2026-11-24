@@ -1,0 +1,78 @@
+name: Publish ARTEMIS S23 preview
+
+on:
+  push:
+    branches:
+      - feature/on-device-artemis
+    paths:
+      - '.github/workflows/publish-artemis-preview.yml'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: artemis-s23-preview-release
+
+jobs:
+  publish:
+    if: github.ref == 'refs/heads/feature/on-device-artemis'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ github.token }}
+      SOURCE_RUN: '45511627702'
+      SOURCE_SHA: 5e175e093f349e7df0fbf60eb4ad42d0478f0098
+      RELEASE_TAG: on-device-artemis-preview
+      APK_NAME: android-mcp-s23-artemis-preview.apk
+    steps:
+      - name: Fetch the signed APK from the successful ARM64 build
+        run: |
+          set -euo pipefail
+          provenance="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$SOURCE_RUN" \
+            --jq '[.head_sha, .head_branch, .conclusion] | @tsv')"
+          IFS=$'\t' read -r sha branch conclusion <<< "$provenance"
+          [[ "$sha" == "$SOURCE_SHA" && "$branch" == "$GITHUB_REF_NAME" && "$conclusion" == success ]]
+
+          gh run download "$SOURCE_RUN" --repo "$GITHUB_REPOSITORY" \
+            --name android-remote-control-mcp-personal-s23 --dir release-assets
+          mv release-assets/android-remote-control-mcp-personal-s23.apk "$APK_NAME"
+          test -s "$APK_NAME"
+          apksigner="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -1)"
+          "$apksigner" verify "$APK_NAME"
+          sha256sum "$APK_NAME"
+
+      - name: Publish the APK in GitHub Releases
+        run: |
+          set -euo pipefail
+          cat > release-notes.txt <<'EOF'
+          Тестовая сборка для Samsung S23 (ARM64) с подключением через CloudPub.
+          Движок Google ARTEMIS запускается на телефоне в Termux.
+          Полный сценарий на физическом S23 предстоит проверить.
+
+          [Настройка на телефоне](https://github.com/Egor09390/android-remote-control-mcp/blob/4815431fe07cadf56f64a866c3c3895fb047aab7/deploy/artemis-local/README.md)
+          [Сборка и тесты APK](https://github.com/Egor09390/android-remote-control-mcp/actions/runs/45511627702)
+          EOF
+
+          if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            target="$(gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json targetCommitish --jq .targetCommitish)"
+            [[ "$target" == "$SOURCE_SHA" ]]
+          else
+            gh release create "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --target "$SOURCE_SHA" \
+              --title "S23 Control — ARTEMIS Preview" --notes-file release-notes.txt \
+              --draft --prerelease --latest=false
+          fi
+
+          expected="$(sha256sum "$APK_NAME" | cut -d ' ' -f 1)"
+          if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json assets \
+            --jq '.assets[].name' | grep -Fx "$APK_NAME" >/dev/null; then
+            gh release download "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" \
+              --pattern "$APK_NAME" --dir existing-assets
+            printf '%s  %s\n' "$expected" "existing-assets/$APK_NAME" | sha256sum -c -
+          else
+            gh release upload "$RELEASE_TAG" "$APK_NAME" --repo "$GITHUB_REPOSITORY"
+          fi
+
+          gh release edit "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" \
+            --draft=false --prerelease --latest=false
