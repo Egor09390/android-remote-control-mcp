@@ -1,0 +1,42 @@
+#!/bin/bash
+set -euo pipefail
+umask 077
+mkdir -p "$HOME/.android" "$TMPDIR" "$ARTEMIS_APP_DIR"
+key="$HOME/.android/adbkey"
+if [[ ! -s "$key" || ! -s "$key.pub" ]]; then
+  /usr/bin/adb keygen "$key"
+fi
+if [[ "$1" == keygen ]]; then exit 0; fi
+
+export GEMINI_API_KEY="$(cat /runtime/model_key)"
+export ARTEMIS_LOCAL_ADB_SOCKET=/runtime/adb.sock
+export ADB_SERVER_SOCKET=localfilesystem:"$ARTEMIS_LOCAL_ADB_SOCKET"
+export ARTEMIS_REAL_ADB=/usr/bin/adb ARTEMIS_ADB_PATH=/opt/bridge/bin/adb ADBUTILS_ADB_PATH=/opt/bridge/bin/adb
+export ADB_MDNS_AUTO_CONNECT=0 ADB_LIBUSB=0 ADB_DEVICE_SERIAL=127.0.0.1:15575
+export ARTEMIS_STANDALONE=1 ARTEMIS_HELPER_AUTO_INSTALL=false PYTHONDONTWRITEBYTECODE=1
+export PYTHONPATH=/opt/bridge:/opt/artemis
+
+cleanup() {
+  /usr/bin/adb kill-server >/dev/null 2>&1 || true
+}
+trap cleanup EXIT
+trap 'exit 143' TERM
+/usr/bin/adb start-server
+for attempt in {1..5}; do
+  /usr/bin/adb connect "$ADB_DEVICE_SERIAL" >/dev/null || true
+  if [[ "$(/usr/bin/adb -s "$ADB_DEVICE_SERIAL" get-state 2>/dev/null || true)" == device ]]; then
+    if [[ "$(/usr/bin/adb -s "$ADB_DEVICE_SERIAL" shell id -u | tr -d '\r')" != 2000 ]]; then
+      echo ARTEMIS_ADB_UNSAFE
+      exit 21
+    fi
+    echo ARTEMIS_ADB_READY
+    break
+  fi
+  if [[ "$attempt" == 5 ]]; then echo ARTEMIS_ADB_ERROR; exit 21; fi
+  sleep 1
+done
+
+/opt/artemis/.venv/bin/python /opt/bridge/bridge.py /runtime/bridge_token &
+bridge_pid=$!
+trap 'kill -TERM "$bridge_pid" 2>/dev/null || true; wait "$bridge_pid" || true; exit 143' TERM
+wait "$bridge_pid"

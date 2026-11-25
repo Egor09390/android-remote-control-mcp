@@ -1,0 +1,145 @@
+name: Build headless ARTEMIS for S23
+
+on:
+  push:
+    branches:
+      - feature/headless-artemis
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: headless-artemis-preview
+  cancel-in-progress: true
+
+jobs:
+  runtime:
+    if: github.ref == 'refs/heads/feature/headless-artemis'
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 35
+    outputs:
+      checksum: ${{ steps.package.outputs.checksum }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and test the ARM64 headless CLI
+        run: docker build -f deploy/artemis-headless/Dockerfile -t s23-artemis-runtime .
+      - name: Package the runtime for Android
+        id: package
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          container="$(docker create s23-artemis-runtime)"
+          trap 'docker rm "$container" >/dev/null' EXIT
+          archive=dist/artemis-runtime-ubuntu24.04-arm64.tar.gz
+          docker export "$container" | gzip -1 > "$archive"
+          test -s "$archive"
+          test "$(stat -c %s "$archive")" -lt 2147483648
+          echo "checksum=$(sha256sum "$archive" | cut -d ' ' -f 1)" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: artemis-runtime-arm64
+          path: dist/artemis-runtime-ubuntu24.04-arm64.tar.gz
+          compression-level: 0
+          if-no-files-found: error
+
+  apk:
+    needs: runtime
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Package CloudPub and compile the ngrok API classes
+        run: |
+          set -euo pipefail
+          python scripts/package-cloudpub.py
+          export JAVA_11_HOME="$JAVA_HOME" JAVA_17_HOME="$JAVA_HOME"
+          cd vendor/ngrok-java
+          mvn compile -pl ngrok-java-native --also-make --global-toolchains toolchains.xml -q
+          mvn package -pl ngrok-java -DskipTests --global-toolchains toolchains.xml -q
+          (cd ngrok-java-native/target/classes && jar cf ../ngrok-java-native-classes.jar com/)
+      - name: Sign the S23 preview APK
+        env:
+          RU_KEYSTORE_BASE64: ${{ secrets.RU_KEYSTORE_BASE64 }}
+          RU_KEYSTORE_PASSWORD: ${{ secrets.RU_KEYSTORE_PASSWORD }}
+          RU_KEY_ALIAS: ${{ secrets.RU_KEY_ALIAS }}
+          RU_KEY_PASSWORD: ${{ secrets.RU_KEY_PASSWORD }}
+          RUNTIME_SHA: ${{ needs.runtime.outputs.checksum }}
+        run: |
+          set -euo pipefail
+          umask 077
+          keystore="$RUNNER_TEMP/headless-artemis.jks"
+          if [[ -n "$RU_KEYSTORE_BASE64" && -n "$RU_KEYSTORE_PASSWORD" && -n "$RU_KEY_ALIAS" && -n "$RU_KEY_PASSWORD" ]]; then
+            printf '%s' "$RU_KEYSTORE_BASE64" | base64 --decode > "$keystore"
+          else
+            RU_KEYSTORE_PASSWORD="$(openssl rand -hex 24)"
+            RU_KEY_PASSWORD="$RU_KEYSTORE_PASSWORD"
+            RU_KEY_ALIAS=headless-artemis-preview
+            keytool -genkeypair -noprompt -keyalg RSA -keysize 3072 -validity 10000 \
+              -keystore "$keystore" -storepass "$RU_KEYSTORE_PASSWORD" -keypass "$RU_KEY_PASSWORD" \
+              -alias "$RU_KEY_ALIAS" -dname "CN=S23 Control ARTEMIS Preview"
+          fi
+          trap 'rm -f keystore.properties "$keystore"' EXIT
+          printf 'storeFile=%s\nstorePassword=%s\nkeyAlias=%s\nkeyPassword=%s\n' \
+            "$keystore" "$RU_KEYSTORE_PASSWORD" "$RU_KEY_ALIAS" "$RU_KEY_PASSWORD" > keystore.properties
+          ./gradlew --no-daemon :app:assembleFossRelease \
+            -PPERSONAL_BUILD=true -PARTEMIS_RUNTIME_SHA256="$RUNTIME_SHA"
+          mkdir -p dist
+          cp app/build/outputs/apk/foss/release/app-foss-release.apk dist/android-mcp-s23-artemis-headless.apk
+          apksigner="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -1)"
+          "$apksigner" verify dist/android-mcp-s23-artemis-headless.apk
+          python - <<'PY'
+          import zipfile
+          with zipfile.ZipFile("dist/android-mcp-s23-artemis-headless.apk") as apk:
+              assert "assets/artemis-supervise.sh" in apk.namelist()
+              assert "lib/arm64-v8a/libcloudpub.so" in apk.namelist()
+              assert any(b"HeadlessArtemis" in apk.read(name) for name in apk.namelist() if name.endswith(".dex"))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: artemis-headless-apk
+          path: dist/android-mcp-s23-artemis-headless.apk
+          compression-level: 0
+          if-no-files-found: error
+
+  release:
+    needs: [runtime, apk]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: artemis-*
+          path: dist
+          merge-multiple: true
+      - name: Publish the Android APK and its verified runtime
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUNTIME_SHA: ${{ needs.runtime.outputs.checksum }}
+        run: |
+          set -euo pipefail
+          printf '%s  %s\n' "$RUNTIME_SHA" dist/artemis-runtime-ubuntu24.04-arm64.tar.gz | sha256sum -c -
+          cat > notes.md <<'EOF'
+          S23 Control сам скачивает и запускает официальный ARM64 CLI ARTEMIS после
+          сохранения ключа Gemini. Приложение использует root-доступ и локальное
+          подключение к Android. Устанавливайте APK. Архив движка скачает сам S23 Control.
+
+          Предварительная сборка. Автоматический запуск на физическом Samsung S23
+          требует проверки.
+          EOF
+          gh release create headless-artemis-preview dist/* \
+            --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
+            --title "S23 Control — Headless ARTEMIS Preview" \
+            --prerelease --latest=false --notes-file notes.md

@@ -30,6 +30,7 @@ import com.danielealbano.androidremotecontrolmcp.mcp.oauth.OAuthApprovalCoordina
 import com.danielealbano.androidremotecontrolmcp.mcp.oauth.OAuthServerDeps
 import com.danielealbano.androidremotecontrolmcp.mcp.tools.LocalArtemisTools
 import com.danielealbano.androidremotecontrolmcp.mcp.tools.McpToolUtils
+import com.danielealbano.androidremotecontrolmcp.personal.HeadlessArtemis
 import com.danielealbano.androidremotecontrolmcp.privacy.PrivacyModeManager
 import com.danielealbano.androidremotecontrolmcp.privacy.PrivacyModeStatus
 import com.danielealbano.androidremotecontrolmcp.privacy.PseudonymStore
@@ -110,6 +111,8 @@ class McpServerService : Service() {
 
     @Inject lateinit var nerCache: NerCache
 
+    @Inject lateinit var headlessArtemis: HeadlessArtemis
+
     /** Config of the currently running server; used to build capability-link base URLs. */
     @Volatile
     private var activeConfig: ServerConfig? = null
@@ -179,6 +182,7 @@ class McpServerService : Service() {
 
             // getServerConfig() guarantees ensureAuthModelMigrated() has run before the server reads
             // the auth model (prevents the cleared-token-user open-server regression).
+            if (HeadlessArtemis.available) headlessArtemis.ensureBridgeToken()
             val config = settingsRepository.getServerConfig()
             activeConfig = config
             // Listener settings the UI refuses to start with fail every other start (ADB, boot) the same way
@@ -267,6 +271,9 @@ class McpServerService : Service() {
                     localhostTunnelPort = listenerRules.tunnelListenerPort(config),
                 )
             mcpServer?.start()
+            if (HeadlessArtemis.available) {
+                coroutineScope.launch { headlessArtemis.supervise(config.localArtemisToken) }
+            }
 
             // Warm the geolocation DB off the request path so the first /authorize doesn't pay the
             // one-time gzip-inflate + mmap cost. Best-effort; a failure just leaves it lazy.

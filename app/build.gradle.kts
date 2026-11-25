@@ -213,6 +213,8 @@ configurations.matching { it.name.startsWith("ktlint") }.configureEach {
 }
 
 val personalBuild = project.hasProperty("PERSONAL_BUILD")
+val artemisRuntimeSha = providers.gradleProperty("ARTEMIS_RUNTIME_SHA256").orElse("").get()
+require(artemisRuntimeSha.isEmpty() || artemisRuntimeSha.matches(Regex("[0-9a-f]{64}")))
 
 android {
     namespace = "com.danielealbano.androidremotecontrolmcp"
@@ -220,6 +222,7 @@ android {
 
     defaultConfig {
         buildConfigField("boolean", "PERSONAL_BUILD", personalBuild.toString())
+        buildConfigField("String", "ARTEMIS_RUNTIME_SHA256", "\"$artemisRuntimeSha\"")
         if (personalBuild) ndk { abiFilters += "arm64-v8a" }
         applicationId = "com.danielealbano.androidremotecontrolmcp"
         minSdk = 33
@@ -262,7 +265,9 @@ android {
         }
         release {
             // Separate app identity for experimental APKs to avoid uninstalling the user's working release.
-            if (project.hasProperty("OWN_VPS_TEST_APK")) {
+            if (artemisRuntimeSha.isNotEmpty()) {
+                applicationIdSuffix = ".headless"
+            } else if (project.hasProperty("OWN_VPS_TEST_APK")) {
                 applicationIdSuffix = ".ownvps"
             }
             isDebuggable = false

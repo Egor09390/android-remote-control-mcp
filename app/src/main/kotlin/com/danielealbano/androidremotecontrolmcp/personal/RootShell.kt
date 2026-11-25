@@ -12,7 +12,7 @@ import javax.inject.Inject
 class RootShell @Inject constructor() {
     data class Result(val code: Int, val output: String)
 
-    suspend fun execute(script: String): Result = withContext(Dispatchers.IO) {
+    suspend fun execute(script: String, timeoutSeconds: Long = 45): Result = withContext(Dispatchers.IO) {
         val process = ProcessBuilder("su", "-c", "sh").redirectErrorStream(true).start()
         try {
             coroutineScope {
@@ -21,7 +21,7 @@ class RootShell @Inject constructor() {
                 }
                 try {
                     process.outputStream.bufferedWriter().use { it.write(script); it.newLine() }
-                    val ended = runInterruptible { process.waitFor(45, TimeUnit.SECONDS) }
+                    val ended = runInterruptible { process.waitFor(timeoutSeconds, TimeUnit.SECONDS) }
                     if (!ended) { process.destroyForcibly(); process.inputStream.close() }
                     Result(if (ended) process.exitValue() else -1, reader.await())
                 } finally {

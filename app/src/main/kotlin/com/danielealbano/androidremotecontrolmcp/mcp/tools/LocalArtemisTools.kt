@@ -60,7 +60,7 @@ class LocalArtemisTools private constructor(
             continuation.invokeOnCancellation { call.cancel() }
             call.enqueue(object : Callback {
                 override fun onFailure(call: Call, e: IOException) {
-                    continuation.resume(errorResult("Cannot reach local ARTEMIS. Check Termux on this phone."))
+                    continuation.resume(errorResult("Local ARTEMIS is starting or needs setup. Check ARTEMIS on this phone."))
                 }
 
                 override fun onResponse(call: Call, response: Response) {

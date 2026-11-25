@@ -112,7 +112,7 @@ def create_app(token: str, device_serial: str) -> FastAPI:
             return tool_response({"error": "Invalid ARTEMIS tool arguments."})
         except Exception as exc:
             logging.getLogger(__name__).warning("ARTEMIS tool failed (%s)", type(exc).__name__)
-            return tool_response({"error": "Local ARTEMIS failed to execute the task. Check Termux."})
+            return tool_response({"error": "Local ARTEMIS failed to execute the task. Check ARTEMIS on this phone."})
 
     return app
 
@@ -124,7 +124,7 @@ def main() -> None:
     parser.add_argument("token_file", type=Path)
     args = parser.parse_args()
     if os.environ.get("ARTEMIS_STANDALONE") != "1" or not getattr(sitecustomize, "private_adb_configured", False):
-        parser.error("Start the adapter through artemis.sh.")
+        parser.error("Start the adapter through the ARTEMIS launcher.")
     app = create_app(args.token_file.read_text().strip(), os.environ["ADB_DEVICE_SERIAL"])
     uvicorn.run(app, host="127.0.0.1", port=18765, proxy_headers=False, access_log=False)
 

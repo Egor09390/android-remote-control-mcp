@@ -47,7 +47,10 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
-class PersonalSetupViewModel @Inject constructor(val setup: PersonalSetup) : ViewModel()
+class PersonalSetupViewModel @Inject constructor(
+    val setup: PersonalSetup,
+    val artemis: HeadlessArtemis,
+) : ViewModel()
 
 private val Accent = Color(0xFFB2A3FF)
 private val Success = Color(0xFF6ED4AA)
@@ -71,7 +74,7 @@ fun PersonalDashboard(root: PersonalSetupViewModel = hiltViewModel()) {
                     if (state.items.isNotEmpty()) PermissionChecklist(state, root.setup)
                 }
             } else {
-                PersonalControlPanel(state, root.setup)
+                PersonalControlPanel(state, root.setup, root.artemis)
             }
         }
     }
@@ -79,11 +82,17 @@ fun PersonalDashboard(root: PersonalSetupViewModel = hiltViewModel()) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun PersonalControlPanel(state: SetupState, setup: PersonalSetup, model: MainViewModel = hiltViewModel()) {
+private fun PersonalControlPanel(
+    state: SetupState,
+    setup: PersonalSetup,
+    artemis: HeadlessArtemis,
+    model: MainViewModel = hiltViewModel(),
+) {
     val config by model.serverConfig.collectAsStateWithLifecycle()
     val server by model.serverStatus.collectAsStateWithLifecycle()
     val tunnel by model.tunnelStatus.collectAsStateWithLifecycle()
     val approvals by model.pendingApprovalCount.collectAsStateWithLifecycle()
+    val artemisStatus by artemis.status.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val clipboard = LocalClipboard.current
     val scope = rememberCoroutineScope()
@@ -171,6 +180,13 @@ private fun PersonalControlPanel(state: SetupState, setup: PersonalSetup, model:
                 Text("Подтвердить подключение · $approvals")
             }
         }
+        if (HeadlessArtemis.available) {
+            Text(
+                artemisStatus.label,
+                style = MaterialTheme.typography.bodyMedium,
+                color = if (artemisStatus == ArtemisStatus.Ready) Success else Accent,
+            )
+        }
         PermissionChecklist(state, setup)
     }
     if (showSettings) {
@@ -192,13 +208,41 @@ private fun PersonalControlPanel(state: SetupState, setup: PersonalSetup, model:
                     autoStarted = true
                     showSettings = false
                 }, enabled = !running && !busy && (token.isNotBlank() || config.cloudpubToken.isNotBlank()), modifier = Modifier.fillMaxWidth()) { Text("Сохранить и подключить") }
-                LocalArtemisSettings(
-                    configured = config.localArtemisToken.isNotBlank(),
-                    canSave = !running && !busy,
-                    onSave = model::updateLocalArtemisToken,
-                )
+                if (HeadlessArtemis.available) {
+                    ArtemisKeySettings(artemis)
+                } else {
+                    LocalArtemisSettings(
+                        configured = config.localArtemisToken.isNotBlank(),
+                        canSave = !running && !busy,
+                        onSave = model::updateLocalArtemisToken,
+                    )
+                }
             }
         }
+    }
+}
+
+@Composable
+private fun ArtemisKeySettings(artemis: HeadlessArtemis) {
+    var key by remember { mutableStateOf("") }
+    OutlinedTextField(
+        value = key,
+        onValueChange = { key = it.trim() },
+        label = { Text("Ключ Gemini для ARTEMIS") },
+        visualTransformation = PasswordVisualTransformation(),
+        singleLine = true,
+        modifier = Modifier.fillMaxWidth(),
+    )
+    Button(
+        enabled = key.isNotBlank(),
+        onClick = {
+            artemis.saveModelKey(key)
+            key = ""
+        },
+    ) { Text("Сохранить ключ Gemini") }
+    val status by artemis.status.collectAsStateWithLifecycle()
+    if (status in setOf(ArtemisStatus.RootRequired, ArtemisStatus.RuntimeError, ArtemisStatus.NetworkError, ArtemisStatus.AdbError)) {
+        FilledTonalButton(onClick = artemis::retry) { Text("Повторить запуск ARTEMIS") }
     }
 }
 
