@@ -267,8 +267,8 @@ android {
         release {
             // The earlier preview used a one-off signing key, so install this preview alongside it.
             if (artemisRuntimeSha.isNotEmpty()) {
-                applicationIdSuffix = ".mcpclient.tree"
-                manifestPlaceholders["appLabel"] = "S23 Control Tree"
+                applicationIdSuffix = ".mcpclient.history"
+                manifestPlaceholders["appLabel"] = "S23 Control History"
             } else if (project.hasProperty("OWN_VPS_TEST_APK")) {
                 applicationIdSuffix = ".ownvps"
             }

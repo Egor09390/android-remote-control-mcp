@@ -1,5 +1,6 @@
 package com.danielealbano.androidremotecontrolmcp.personal
 
+import android.Manifest
 import android.content.Context
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageInfo
@@ -32,7 +33,7 @@ class PersonalSetupTest {
         every { context.packageManager } returns manager
         every { context.getSystemService(PowerManager::class.java) } returns power
         every { manager.getPackageInfo(any<String>(), any<PackageManager.PackageInfoFlags>()) } returns
-            PackageInfo().apply { requestedPermissions = emptyArray() }
+            PackageInfo().apply { requestedPermissions = arrayOf(Manifest.permission.POST_NOTIFICATIONS) }
         val settings = mockk<SettingsRepository>(relaxed = true)
         val shell = mockk<RootShell>()
         coEvery { shell.execute(any()) } returns RootShell.Result(17, "")
@@ -41,6 +42,7 @@ class PersonalSetupTest {
         val state = withTimeout(5_000) { setup.state.first { !it.busy } }
         assertFalse(state.initialized)
         assertFalse(state.items.first { it.id == "root" }.granted)
+        assertFalse(state.items.any { it.id == Manifest.permission.POST_NOTIFICATIONS })
         assertNotNull(state.message)
         assertFalse(File(temp, "files/datastore/settings.preferences_pb").exists())
         confirmVerified(settings)

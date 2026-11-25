@@ -4,6 +4,7 @@ import com.danielealbano.androidremotecontrolmcp.BuildConfig
 import com.danielealbano.androidremotecontrolmcp.data.model.ToolPermissionsConfig
 import com.danielealbano.androidremotecontrolmcp.data.repository.ServerLogRepository
 import com.danielealbano.androidremotecontrolmcp.mcp.InFlightToolCalls
+import com.danielealbano.androidremotecontrolmcp.mcp.tools.GetScreenHistoryHandler
 import com.danielealbano.androidremotecontrolmcp.mcp.tools.LocalArtemisTools
 import com.danielealbano.androidremotecontrolmcp.mcp.tools.LoggedToolRegistrar
 import com.danielealbano.androidremotecontrolmcp.mcp.tools.ReferenceCountedToolCallIndicator
@@ -22,6 +23,7 @@ import com.danielealbano.androidremotecontrolmcp.mcp.tools.registerTextInputTool
 import com.danielealbano.androidremotecontrolmcp.mcp.tools.registerTouchActionTools
 import com.danielealbano.androidremotecontrolmcp.mcp.tools.registerUtilityTools
 import com.danielealbano.androidremotecontrolmcp.services.accessibility.AccessibilityToolCallIndicator
+import com.danielealbano.androidremotecontrolmcp.services.accessibility.ScreenHistory
 import io.modelcontextprotocol.kotlin.sdk.server.Server
 import javax.inject.Inject
 
@@ -49,6 +51,7 @@ class McpToolRegistration
             toolCallIndicatorEnabled: Boolean,
             localArtemis: LocalArtemisTools? = null,
             treeFirst: Boolean = BuildConfig.PERSONAL_BUILD,
+            screenHistory: ScreenHistory? = null,
             currentBaseUrl: () -> String,
         ) {
             val toolCallIndicator = ReferenceCountedToolCallIndicator(AccessibilityToolCallIndicator())
@@ -60,11 +63,22 @@ class McpToolRegistration
                     toolCallIndicator,
                     inFlightToolCalls,
                 )
-            registerScreenTools(registrar, toolNamePrefix, perms, treeFirst)
+            registerScreenTools(registrar, toolNamePrefix, perms, treeFirst, screenHistory != null)
+            if (screenHistory != null) {
+                GetScreenHistoryHandler(screenHistory, screen.compactTreeFormatter, privacy.privacyToolGate)
+                    .register(registrar, toolNamePrefix)
+            }
             registerAccessibilityToolBundle(registrar, toolNamePrefix, perms)
             val d = device
             registerFileTools(registrar, d.storageLocationProvider, d.fileOperationProvider, toolNamePrefix, perms)
-            registerAppManagementTools(registrar, d.appManager, privacy.privacyToolGate, toolNamePrefix, perms)
+            registerAppManagementTools(
+                registrar,
+                d.appManager,
+                privacy.privacyToolGate,
+                toolNamePrefix,
+                perms,
+                historyAvailable = screenHistory != null,
+            )
             registerCameraTools(registrar, d.cameraProvider, d.fileOperationProvider, toolNamePrefix, perms)
             registerIntentTools(registrar, d.intentDispatcher, toolNamePrefix, perms)
             registerNotificationTools(
@@ -138,6 +152,7 @@ class McpToolRegistration
             toolNamePrefix: String,
             perms: ToolPermissionsConfig,
             treeFirst: Boolean,
+            historyAvailable: Boolean,
         ) {
             registerScreenIntrospectionTools(
                 registrar,
@@ -155,6 +170,7 @@ class McpToolRegistration
                 toolNamePrefix,
                 perms,
                 treeFirst,
+                historyAvailable,
             )
         }
 

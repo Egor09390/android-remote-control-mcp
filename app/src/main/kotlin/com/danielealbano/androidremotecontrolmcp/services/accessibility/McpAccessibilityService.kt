@@ -22,6 +22,7 @@ import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 import android.view.accessibility.AccessibilityWindowInfo
 import android.widget.TextView
+import com.danielealbano.androidremotecontrolmcp.BuildConfig
 import com.danielealbano.androidremotecontrolmcp.services.screencapture.ScreenshotPacer
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
@@ -31,6 +32,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withTimeoutOrNull
 import java.util.concurrent.Executor
@@ -43,11 +47,15 @@ class McpAccessibilityService : AccessibilityService() {
     @InstallIn(SingletonComponent::class)
     interface NodeCacheEntryPoint {
         fun nodeCache(): AccessibilityNodeCache
+        fun screenHistory(): ScreenHistory
+        fun treeParser(): AccessibilityTreeParser
     }
 
     private var serviceScope: CoroutineScope? = null
 
     private var nodeCache: AccessibilityNodeCache? = null
+    private var screenHistory: ScreenHistory? = null
+    private var historyRequests: Channel<Unit>? = null
 
     private var cacheInvalidationDebouncer: CacheInvalidationDebouncer? = null
 
@@ -68,7 +76,11 @@ class McpAccessibilityService : AccessibilityService() {
         instance = this
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
         serviceScope = scope
-        nodeCache = resolveNodeCache()
+        val dependencies = resolveDependencies()
+        nodeCache = dependencies?.nodeCache()
+        if (BuildConfig.PERSONAL_BUILD && dependencies != null) {
+            observeScreenHistory(scope, dependencies.screenHistory(), dependencies.treeParser())
+        }
         cacheInvalidationDebouncer =
             CacheInvalidationDebouncer(
                 scope = scope,
@@ -88,6 +100,7 @@ class McpAccessibilityService : AccessibilityService() {
             AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED -> {
                 event.packageName?.toString()?.let { packageName ->
                     currentPackageName = packageName
+                    screenHistory?.recordWindowEvent(ScreenWindow(event.windowId, packageName), event.className?.toString())
                 }
                 event.className?.toString()?.let { className ->
                     currentActivityName = className
@@ -97,11 +110,13 @@ class McpAccessibilityService : AccessibilityService() {
                     "Window state changed: package=$currentPackageName, " +
                         "activity=$currentActivityName",
                 )
+                requestHistorySample()
             }
 
             AccessibilityEvent.TYPE_WINDOWS_CHANGED -> {
                 // Soft-keyboard show/hide and other window add/remove/bounds changes arrive here.
                 Log.d(TAG, "Windows changed (e.g. soft-keyboard show/hide)")
+                if ((event.windowChanges and HISTORY_WINDOW_CHANGES) != 0) requestHistorySample()
             }
 
             AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED -> {
@@ -135,6 +150,10 @@ class McpAccessibilityService : AccessibilityService() {
         // Flush the node cache — all AccessibilityNodeInfo references become invalid.
         nodeCache?.clear()
         nodeCache = null
+        historyRequests?.cancel()
+        historyRequests = null
+        screenHistory?.clear()
+        screenHistory = null
 
         serviceScope?.cancel()
         serviceScope = null
@@ -320,16 +339,64 @@ class McpAccessibilityService : AccessibilityService() {
         }
     }
 
+    private fun observeScreenHistory(
+        scope: CoroutineScope,
+        history: ScreenHistory,
+        treeParser: AccessibilityTreeParser,
+    ) {
+        screenHistory = history
+        historyRequests?.cancel()
+        val requests = Channel<Unit>(Channel.CONFLATED)
+        historyRequests = requests
+        scope.launch(Dispatchers.IO) {
+            for (ignored in requests) {
+                val sample = history.sample() ?: continue
+                val capture = readFocusedWindow(treeParser)
+                if (capture != null) {
+                    history.recordFocusedWindow(sample, capture.first, capture.second)
+                }
+                delay(HISTORY_SAMPLE_INTERVAL_MS)
+            }
+        }
+    }
+
+    private fun requestHistorySample() {
+        if (screenHistory?.sample() != null) historyRequests?.trySend(Unit)
+    }
+
+    @Suppress("DEPRECATION")
+    private fun readFocusedWindow(treeParser: AccessibilityTreeParser): Pair<ScreenWindow, HistoricalScreenTree?>? =
+        runCatching {
+            synchronized(AccessibilityTreeLock.monitor) {
+                val root = getRootNode() ?: return@synchronized null
+                val window = root.window
+                try {
+                    if (window?.type != AccessibilityWindowInfo.TYPE_APPLICATION || !window.isFocused) {
+                        return@synchronized null
+                    }
+                    val pkg = root.packageName?.toString() ?: return@synchronized null
+                    val target = ScreenWindow(window.id, pkg)
+                    val snapshot = runCatching {
+                        val data = treeParser.parseTree(root, "root_w${target.id}", nodeLimit = HISTORY_NODE_LIMIT)
+                        HistoricalScreenTree(data.forScreenHistory(), getScreenInfo())
+                    }.getOrNull()
+                    target to snapshot
+                } finally {
+                    window?.recycle()
+                    root.recycle()
+                }
+            }
+        }.getOrNull()
+
     /**
-     * Resolves the singleton [AccessibilityNodeCache] via Hilt's application entry point.
+     * Resolves accessibility dependencies via Hilt's application entry point.
      * Returns null (and logs) if Hilt is not initialized, in which case cache invalidation
      * becomes a no-op rather than crashing the service.
      */
-    private fun resolveNodeCache(): AccessibilityNodeCache? =
+    private fun resolveDependencies(): NodeCacheEntryPoint? =
         try {
             EntryPointAccessors
                 .fromApplication(applicationContext, NodeCacheEntryPoint::class.java)
-                .nodeCache()
         } catch (e: IllegalStateException) {
             Log.w(TAG, "Could not resolve node cache", e)
             null
@@ -401,6 +468,10 @@ class McpAccessibilityService : AccessibilityService() {
     companion object {
         private const val TAG = "MCP:AccessibilityService"
         private const val NOTIFICATION_TIMEOUT_MS = 100L
+        private const val HISTORY_SAMPLE_INTERVAL_MS = 180L
+        private const val HISTORY_NODE_LIMIT = 64
+        private const val HISTORY_WINDOW_CHANGES =
+            AccessibilityEvent.WINDOWS_CHANGE_ACTIVE or AccessibilityEvent.WINDOWS_CHANGE_FOCUSED
         private const val SCREENSHOT_TIMEOUT_MS = 5000L
         private const val TOOL_INDICATOR_HORIZONTAL_PADDING_DP = 16
         private const val TOOL_INDICATOR_VERTICAL_PADDING_DP = 8

@@ -1,4 +1,4 @@
-name: Build S23 Control with accessibility-first screen tools
+name: Build S23 Control with screen history
 
 on:
   push:
@@ -10,7 +10,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: screen-tree-preview
+  group: screen-history-preview
   cancel-in-progress: true
 
 jobs:
@@ -54,12 +54,15 @@ jobs:
           (cd ngrok-java-native/target/classes && jar cf ../ngrok-java-native-classes.jar com/)
           (cd ngrok-java-native && cargo build --release)
           (cd ngrok-java-native/target/release && jar cf ../ngrok-java-native-host.jar libngrok_java.so)
-      - name: Test accessibility tree and explicit screenshot over MCP
+      - name: Test screen history, screen tools and personal permissions
         run: >-
           ./gradlew --no-daemon :app:testFossDebugUnitTest -PPERSONAL_BUILD=true
           --tests '*McpToolRegistrationTest'
           --tests '*ScreenIntrospectionToolsTest'
           --tests '*ScreenIntrospectionIntegrationTest'
+          --tests '*ScreenHistoryTest'
+          --tests '*AccessibilityTreeParserTest'
+          --tests '*PersonalSetupTest'
       - name: Sign the S23 preview APK
         env:
           RU_KEYSTORE_BASE64: ${{ secrets.RU_KEYSTORE_BASE64 }}
@@ -86,23 +89,23 @@ jobs:
           ./gradlew --no-daemon :app:assembleFossRelease \
             -PPERSONAL_BUILD=true -PARTEMIS_RUNTIME_SHA256="$RUNTIME_SHA"
           mkdir -p dist
-          cp app/build/outputs/apk/foss/release/app-foss-release.apk dist/android-mcp-s23-tree.apk
+          cp app/build/outputs/apk/foss/release/app-foss-release.apk dist/android-mcp-s23-history.apk
           apksigner="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -1)"
-          "$apksigner" verify dist/android-mcp-s23-tree.apk
+          "$apksigner" verify dist/android-mcp-s23-history.apk
           python - <<'PY'
           import os
           import zipfile
-          with zipfile.ZipFile("dist/android-mcp-s23-tree.apk") as apk:
+          with zipfile.ZipFile("dist/android-mcp-s23-history.apk") as apk:
               assert "assets/artemis-supervise.sh" in apk.namelist()
               assert "lib/arm64-v8a/libcloudpub.so" in apk.namelist()
               dex = [apk.read(name) for name in apk.namelist() if name.endswith(".dex")]
-              for expected in (b"capture_screenshot", b"HeadlessArtemis", os.environ["RUNTIME_SHA"].encode()):
+              for expected in (b"get_screen_history", b"capture_screenshot", os.environ["RUNTIME_SHA"].encode()):
                   assert any(expected in part for part in dex), expected
           PY
       - uses: actions/upload-artifact@v4
         with:
-          name: s23-screen-tree-apk
-          path: dist/android-mcp-s23-tree.apk
+          name: s23-screen-history-apk
+          path: dist/android-mcp-s23-history.apk
           compression-level: 0
           if-no-files-found: error
 
@@ -114,7 +117,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: s23-screen-tree-apk
+          name: s23-screen-history-apk
           path: dist
       - name: Publish the S23 APK
         env:
@@ -122,14 +125,14 @@ jobs:
         run: |
           set -euo pipefail
           cat > notes.md <<'EOF'
-          `android_get_screen_state` возвращает дерево экрана с ID и координатами элементов.
-          Отдельная команда `android_capture_screenshot` возвращает дерево и снимок.
-          Доступ к снимку можно отключить в настройках S23 Control при остановленном MCP.
+          `android_get_screen_history` показывает смену окон за последние 60 секунд.
+          `include_nodes=true` добавляет сохранённые деревья, когда Android успел их отдать.
+          Разрешение на показ уведомлений в шторке не требуется для работы MCP.
 
-          S23 Control Tree устанавливается рядом с предыдущей сборкой. Подключите
+          S23 Control History устанавливается рядом с предыдущей сборкой. Подключите
           CloudPub в новом приложении и используйте выданный адрес MCP.
           EOF
-          gh release create screen-tree-preview dist/android-mcp-s23-tree.apk \
+          gh release create screen-history-preview dist/android-mcp-s23-history.apk \
             --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
-            --title "S23 Control — Accessibility Tree Preview" \
+            --title "S23 Control — Screen History Preview" \
             --prerelease --latest=false --notes-file notes.md

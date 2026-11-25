@@ -36,12 +36,14 @@ class AccessibilityTreeParser
          *   stored as [CachedNode] entries during traversal. Child nodes are NOT recycled in this mode —
          *   the caller accumulates references and populates [AccessibilityNodeCache] externally.
          *   When null, child nodes are recycled after data extraction (original behavior).
+         * @param nodeLimit Maximum number of nodes to read, including the root.
          * @return The parsed tree as [AccessibilityNodeData].
          */
         fun parseTree(
             rootNode: AccessibilityNodeInfo,
             rootParentId: String = ROOT_PARENT_ID,
             nodeMap: MutableMap<String, CachedNode>? = null,
+            nodeLimit: Int? = null,
         ): AccessibilityNodeData =
             parseNode(
                 node = rootNode,
@@ -50,6 +52,7 @@ class AccessibilityTreeParser
                 parentId = rootParentId,
                 recycleNode = false,
                 nodeMap = nodeMap,
+                budget = nodeLimit?.let { TreeReadBudget(it) },
             )
 
         /**
@@ -74,7 +77,9 @@ class AccessibilityTreeParser
             parentId: String,
             recycleNode: Boolean = true,
             nodeMap: MutableMap<String, CachedNode>? = null,
+            budget: TreeReadBudget? = null,
         ): AccessibilityNodeData {
+            if (budget != null) budget.remaining--
             val rect = Rect()
             node.getBoundsInScreen(rect)
             val bounds =
@@ -152,6 +157,7 @@ class AccessibilityTreeParser
             val children = mutableListOf<AccessibilityNodeData>()
             val childCount = node.childCount
             for (i in 0 until childCount) {
+                if (budget?.remaining == 0) break
                 val childNode = node.getChild(i)
                 if (childNode != null) {
                     // Refresh nodes that are likely virtual (Compose, WebView, custom
@@ -173,8 +179,11 @@ class AccessibilityTreeParser
                             parentId = nodeId,
                             recycleNode = nodeMap == null,
                             nodeMap = nodeMap,
+                            budget = budget,
                         ),
                     )
+                } else if (budget != null) {
+                    budget.remaining--
                 }
             }
 
@@ -313,3 +322,9 @@ class AccessibilityTreeParser
                 }
         }
     }
+
+internal class TreeReadBudget(var remaining: Int) {
+    init {
+        require(remaining > 0)
+    }
+}

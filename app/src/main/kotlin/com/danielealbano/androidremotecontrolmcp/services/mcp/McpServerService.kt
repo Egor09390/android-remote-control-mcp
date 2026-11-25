@@ -7,6 +7,7 @@ import android.content.Intent
 import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import com.danielealbano.androidremotecontrolmcp.BuildConfig
 import com.danielealbano.androidremotecontrolmcp.McpApplication
 import com.danielealbano.androidremotecontrolmcp.R
 import com.danielealbano.androidremotecontrolmcp.data.model.BindingAddress
@@ -28,6 +29,8 @@ import com.danielealbano.androidremotecontrolmcp.mcp.oauth.AuthorizationCodeStor
 import com.danielealbano.androidremotecontrolmcp.mcp.oauth.JwtTokenService
 import com.danielealbano.androidremotecontrolmcp.mcp.oauth.OAuthApprovalCoordinator
 import com.danielealbano.androidremotecontrolmcp.mcp.oauth.OAuthServerDeps
+import com.danielealbano.androidremotecontrolmcp.mcp.tools.GetScreenHistoryHandler
+import com.danielealbano.androidremotecontrolmcp.mcp.tools.GetScreenStateHandler
 import com.danielealbano.androidremotecontrolmcp.mcp.tools.LocalArtemisTools
 import com.danielealbano.androidremotecontrolmcp.mcp.tools.McpToolUtils
 import com.danielealbano.androidremotecontrolmcp.personal.HeadlessArtemis
@@ -35,6 +38,7 @@ import com.danielealbano.androidremotecontrolmcp.privacy.PrivacyModeManager
 import com.danielealbano.androidremotecontrolmcp.privacy.PrivacyModeStatus
 import com.danielealbano.androidremotecontrolmcp.privacy.PseudonymStore
 import com.danielealbano.androidremotecontrolmcp.privacy.ner.NerCache
+import com.danielealbano.androidremotecontrolmcp.services.accessibility.ScreenHistory
 import com.danielealbano.androidremotecontrolmcp.services.accessibility.ScreenStateSnapshotCache
 import com.danielealbano.androidremotecontrolmcp.services.notifications.McpNotificationListenerService
 import com.danielealbano.androidremotecontrolmcp.services.sharing.EphemeralFileLinkService
@@ -90,6 +94,7 @@ class McpServerService : Service() {
     @Inject lateinit var listenerRules: McpListenerRules
 
     @Inject lateinit var screenStateSnapshotCache: ScreenStateSnapshotCache
+    @Inject lateinit var screenHistory: ScreenHistory
 
     @Inject lateinit var ephemeralFileLinkService: EphemeralFileLinkService
 
@@ -151,6 +156,7 @@ class McpServerService : Service() {
         when (intent?.action) {
             ACTION_STOP -> {
                 lastIntentWasStop = true
+                screenHistory.stop()
                 persistServerRunning(settingsRepository, false)
                 stopSelf()
                 return START_NOT_STICKY
@@ -241,6 +247,12 @@ class McpServerService : Service() {
                 )
             val effectivePerms =
                 OptionalToolPermissions.effectivePermissions(config.toolPermissionsConfig, grantedOptionalPermissions)
+            val history = screenHistory.takeIf {
+                BuildConfig.PERSONAL_BUILD &&
+                    (config.oauthEnabled || (config.bearerTokenEnabled && config.bearerToken.isNotBlank())) &&
+                    effectivePerms.isToolEnabled(GetScreenStateHandler.TOOL_NAME) &&
+                    effectivePerms.isToolEnabled(GetScreenHistoryHandler.TOOL_NAME)
+            }
             toolRegistration.registerAll(
                 sdkServer,
                 toolNamePrefix,
@@ -252,6 +264,7 @@ class McpServerService : Service() {
                     startHeadless = if (HeadlessArtemis.available) headlessArtemis::requestStart else null,
                     currentConfig = { settingsRepository.getServerConfig() },
                 ),
+                screenHistory = history,
                 currentBaseUrl = currentBaseUrl,
             )
 
@@ -275,6 +288,7 @@ class McpServerService : Service() {
                     localhostTunnelPort = listenerRules.tunnelListenerPort(config),
                 )
             mcpServer?.start()
+            history?.start()
             if (HeadlessArtemis.available) {
                 coroutineScope.launch { headlessArtemis.supervise(config.localArtemisToken) }
             }
@@ -357,6 +371,7 @@ class McpServerService : Service() {
         } catch (e: Exception) {
             // A start cancelled by a teardown is not a start failure.
             currentCoroutineContext().ensureActive()
+            screenHistory.stop()
             Log.e(TAG, "Failed to start MCP server", e)
             // Free for a new start before the Error is published: the UI may start again as soon as it sees it
             serverActive.set(false)
@@ -382,6 +397,7 @@ class McpServerService : Service() {
             Log.w(TAG, "Server start still running after ${START_JOIN_TIMEOUT_MS}ms; proceeding with shutdown")
         }
         screenStateSnapshotCache.clear()
+        screenHistory.stop()
         // Release the Privacy Mode model and clear session-scoped pseudonym/NER caches (never persisted).
         privacyModeManager.shutdown()
         pseudonymStore.clear()

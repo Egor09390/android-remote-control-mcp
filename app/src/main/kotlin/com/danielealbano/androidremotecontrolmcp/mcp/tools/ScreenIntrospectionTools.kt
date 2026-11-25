@@ -307,6 +307,7 @@ class GetScreenStateHandler
             toolNamePrefix: String,
             includeScreenshotParamEnabled: Boolean = true,
             treeFirst: Boolean = false,
+            historyAvailable: Boolean = false,
         ) {
             val hasScreenshotTool = treeFirst && includeScreenshotParamEnabled
             val description =
@@ -336,7 +337,11 @@ class GetScreenStateHandler
             registrar.addTool(
                 toolName = TOOL_NAME,
                 name = "$toolNamePrefix$TOOL_NAME",
-                description = description,
+                description = if (historyAvailable) {
+                    description + " Use ${toolNamePrefix}${GetScreenHistoryHandler.TOOL_NAME} to check a recent window change."
+                } else {
+                    description
+                },
                 inputSchema =
                     ToolSchema(
                         properties = getScreenStateProperties(includeScreenshotParamEnabled && !treeFirst),
@@ -424,6 +429,7 @@ fun registerScreenIntrospectionTools(
     toolNamePrefix: String,
     perms: ToolPermissionsConfig,
     treeFirst: Boolean = false,
+    historyAvailable: Boolean = false,
 ) {
     if (perms.isToolEnabled(GetScreenStateHandler.TOOL_NAME)) {
         GetScreenStateHandler(
@@ -445,6 +451,7 @@ fun registerScreenIntrospectionTools(
                 perms.isParamEnabled(GetScreenStateHandler.TOOL_NAME, GetScreenStateHandler.PARAM_INCLUDE_SCREENSHOT) &&
                     (!treeFirst || perms.isToolEnabled(GetScreenStateHandler.SCREENSHOT_TOOL_NAME)),
             treeFirst = treeFirst,
+            historyAvailable = historyAvailable,
         )
     }
 }

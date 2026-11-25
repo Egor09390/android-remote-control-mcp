@@ -1,5 +1,6 @@
 package com.danielealbano.androidremotecontrolmcp.personal
 
+import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
 import android.content.pm.PermissionInfo
@@ -154,7 +155,10 @@ class PersonalSetup @Inject constructor(
     private fun permissionNames(): List<String> = context.packageManager.getPackageInfo(
         pkg,
         PackageManager.PackageInfoFlags.of(PackageManager.GET_PERMISSIONS.toLong()),
-    ).requestedPermissions.orEmpty().distinct().sorted()
+    ).requestedPermissions.orEmpty()
+        .filterNot { it == Manifest.permission.POST_NOTIFICATIONS }
+        .distinct()
+        .sorted()
 
     private fun refreshItems() {
         val manager = context.packageManager
@@ -206,7 +210,6 @@ class PersonalSetup @Inject constructor(
         internal fun permissionTitle(name: String): String? = when (name.substringAfterLast('.')) {
             "INTERNET" -> "Интернет"
             "ACCESS_NETWORK_STATE" -> "Состояние сети"
-            "POST_NOTIFICATIONS" -> "Уведомления"
             "CAMERA" -> "Камера"
             "RECORD_AUDIO" -> "Микрофон"
             "ACCESS_FINE_LOCATION" -> "Точная геопозиция"

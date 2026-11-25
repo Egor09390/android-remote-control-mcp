@@ -54,14 +54,21 @@ class OpenAppHandler
         fun register(
             registrar: LoggedToolRegistrar,
             toolNamePrefix: String,
+            historyAvailable: Boolean = false,
         ) {
+            val confirmationHint = if (historyAvailable) {
+                " Use ${toolNamePrefix}${GetScreenHistoryHandler.TOOL_NAME} to check whether the app appeared " +
+                    "briefly before retrying a launch."
+            } else {
+                ""
+            }
             registrar.addTool(
                 toolName = TOOL_NAME,
                 name = "$toolNamePrefix$TOOL_NAME",
                 description =
                     "Opens (launches) an application by its package ID. " +
                         "The app must be installed and have a launchable activity. " +
-                        "Returns after the launch intent is sent.",
+                        "Returns after the launch intent is sent." + confirmationHint,
                 inputSchema =
                     ToolSchema(
                         properties =
@@ -268,8 +275,11 @@ fun registerAppManagementTools(
     privacyToolGate: PrivacyToolGate,
     toolNamePrefix: String,
     perms: ToolPermissionsConfig,
+    historyAvailable: Boolean = false,
 ) {
-    if (perms.isToolEnabled(OpenAppHandler.TOOL_NAME)) OpenAppHandler(appManager).register(registrar, toolNamePrefix)
+    if (perms.isToolEnabled(OpenAppHandler.TOOL_NAME)) {
+        OpenAppHandler(appManager).register(registrar, toolNamePrefix, historyAvailable)
+    }
     if (perms.isToolEnabled(ListAppsHandler.TOOL_NAME)) {
         ListAppsHandler(appManager, privacyToolGate).register(registrar, toolNamePrefix)
     }

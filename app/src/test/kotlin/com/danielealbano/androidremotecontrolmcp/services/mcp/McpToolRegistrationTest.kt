@@ -6,6 +6,7 @@ import com.danielealbano.androidremotecontrolmcp.integration.McpIntegrationTestH
 import com.danielealbano.androidremotecontrolmcp.mcp.tools.LocalArtemisTools
 import com.danielealbano.androidremotecontrolmcp.mcp.tools.McpToolUtils
 import com.danielealbano.androidremotecontrolmcp.services.accessibility.CompactTreeFormatter
+import com.danielealbano.androidremotecontrolmcp.services.accessibility.ScreenHistory
 import com.danielealbano.androidremotecontrolmcp.services.accessibility.WebViewNodeMerger
 import com.danielealbano.androidremotecontrolmcp.services.screencapture.ScreenshotRedactor
 import io.modelcontextprotocol.kotlin.sdk.server.Server
@@ -60,6 +61,7 @@ class McpToolRegistrationTest {
         config: ServerConfig = ServerConfig(),
         startHeadless: (() -> String?)? = null,
         treeFirst: Boolean = false,
+        screenHistory: ScreenHistory? = null,
     ): Set<String> {
         val server =
             Server(
@@ -77,6 +79,7 @@ class McpToolRegistrationTest {
             toolCallIndicatorEnabled = false,
             localArtemis = LocalArtemisTools.forConfig(config, startHeadless) { config },
             treeFirst = treeFirst,
+            screenHistory = screenHistory,
         ) { McpIntegrationTestHelper.TEST_BASE_URL }
         return server.tools.keys.toSet()
     }
@@ -151,6 +154,19 @@ class McpToolRegistrationTest {
 
         assertEquals(baseline + "${prefix}capture_screenshot", registered(deviceSlug = DEVICE_SLUG, treeFirst = true))
         assertEquals(baseline, registered(deviceSlug = DEVICE_SLUG, perms = screenshotsDisabled, treeFirst = true))
+    }
+
+    @Test
+    fun `screen history registers on its own prefixed tool when the server enables recording`() {
+        val prefix = McpToolUtils.buildToolNamePrefix(DEVICE_SLUG)
+        val baseline = registered(deviceSlug = DEVICE_SLUG, treeFirst = true)
+        val actual = registered(
+            deviceSlug = DEVICE_SLUG,
+            treeFirst = true,
+            screenHistory = ScreenHistory({ 0L }, { 0L }),
+        )
+
+        assertEquals(baseline + "${prefix}get_screen_history", actual)
     }
 
     private companion object {
