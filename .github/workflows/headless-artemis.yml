@@ -57,10 +57,12 @@ jobs:
           distribution: temurin
           java-version: '17'
       - uses: gradle/actions/setup-gradle@v4
+      - name: Set up Rust for the JVM test dependency
+        uses: dtolnay/rust-toolchain@stable
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Package CloudPub and compile the ngrok API classes
+      - name: Package CloudPub and build the ngrok JVM test dependency
         run: |
           set -euo pipefail
           python scripts/package-cloudpub.py
@@ -69,6 +71,8 @@ jobs:
           mvn compile -pl ngrok-java-native --also-make --global-toolchains toolchains.xml -q
           mvn package -pl ngrok-java -DskipTests --global-toolchains toolchains.xml -q
           (cd ngrok-java-native/target/classes && jar cf ../ngrok-java-native-classes.jar com/)
+          (cd ngrok-java-native && cargo build --release)
+          (cd ngrok-java-native/target/release && jar cf ../ngrok-java-native-host.jar libngrok_java.so)
       - name: Check the native and client-controlled MCP tool catalog
         run: >-
           ./gradlew --no-daemon :app:testFossDebugUnitTest -PPERSONAL_BUILD=true
