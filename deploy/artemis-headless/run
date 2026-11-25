@@ -8,7 +8,6 @@ if [[ ! -s "$key" || ! -s "$key.pub" ]]; then
 fi
 if [[ "$1" == keygen ]]; then exit 0; fi
 
-export GEMINI_API_KEY="$(cat /runtime/model_key)"
 export ARTEMIS_LOCAL_ADB_SOCKET=/runtime/adb.sock
 export ADB_SERVER_SOCKET=localfilesystem:"$ARTEMIS_LOCAL_ADB_SOCKET"
 export ARTEMIS_REAL_ADB=/usr/bin/adb ARTEMIS_ADB_PATH=/opt/bridge/bin/adb ADBUTILS_ADB_PATH=/opt/bridge/bin/adb
@@ -36,7 +35,7 @@ for attempt in {1..5}; do
   sleep 1
 done
 
-/opt/artemis/.venv/bin/python /opt/bridge/bridge.py /runtime/bridge_token &
+/opt/artemis/.venv/bin/python /opt/bridge/action_bridge.py /runtime/bridge_token &
 bridge_pid=$!
 trap 'kill -TERM "$bridge_pid" 2>/dev/null || true; wait "$bridge_pid" || true; exit 143' TERM
 wait "$bridge_pid"

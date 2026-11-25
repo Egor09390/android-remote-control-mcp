@@ -1,7 +1,6 @@
 package com.danielealbano.androidremotecontrolmcp.personal
 
 import android.content.Context
-import android.net.ConnectivityManager
 import android.os.Process
 import com.danielealbano.androidremotecontrolmcp.BuildConfig
 import com.danielealbano.androidremotecontrolmcp.data.repository.SettingsRepository
@@ -36,8 +35,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 enum class ArtemisStatus(val label: String) {
-    KeyRequired("Введите ключ Gemini один раз"),
-    Waiting("Запустите MCP"),
+    Waiting("ARTEMIS запускается по команде MCP"),
     Downloading("Скачиваю среду ARTEMIS…"),
     Installing("Устанавливаю ARTEMIS…"),
     Starting("Запускаю ARTEMIS…"),
@@ -55,24 +53,26 @@ class HeadlessArtemis @Inject constructor(
     private val settings: SettingsRepository,
     private val root: RootShell,
 ) {
-    private val credentials = context.getSharedPreferences("artemis_credentials", Context.MODE_PRIVATE)
-    private val modelKey = MutableStateFlow(credentials.getString("gemini_key", "").orEmpty())
+    private val requested = MutableStateFlow(false)
     private val retry = MutableStateFlow(0L)
-    private val _status = MutableStateFlow(if (modelKey.value.isBlank()) ArtemisStatus.KeyRequired else ArtemisStatus.Waiting)
+    private val _status = MutableStateFlow(ArtemisStatus.Waiting)
     val status = _status.asStateFlow()
     private val lease = Mutex()
     private val base get() = File(context.noBackupFilesDir, "artemis")
     private val stateDir get() = File(base, "state")
 
-    fun saveModelKey(value: String) {
-        val key = value.trim()
-        credentials.edit().putString("gemini_key", key).apply()
-        if (modelKey.value == key) retry() else modelKey.value = key
+    fun requestStart(): String? {
+        requested.value = true
+        return when (_status.value) {
+            ArtemisStatus.Ready -> null
+            ArtemisStatus.RootRequired, ArtemisStatus.AdbError, ArtemisStatus.RuntimeError, ArtemisStatus.NetworkError ->
+                "ARTEMIS could not start on this phone. Use the standard Android MCP tools."
+            else -> "The phone is preparing ARTEMIS. The standard Android MCP tools are ready."
+        }
     }
 
     fun retry() {
         retry.value += 1
-        if (modelKey.value.isBlank()) _status.value = ArtemisStatus.KeyRequired
     }
 
     suspend fun ensureBridgeToken() {
@@ -84,29 +84,24 @@ class HeadlessArtemis @Inject constructor(
     }
 
     suspend fun supervise(token: String) {
-        combine(modelKey, settings.serverConfig, retry) { key, config, attempt ->
+        combine(requested, settings.serverConfig, retry) { wanted, config, attempt ->
             val allowed = !config.privacyModeConfig.enabled &&
                 (config.oauthEnabled || (config.bearerTokenEnabled && config.bearerToken.isNotBlank()))
-            (if (allowed) key else "") to attempt
-        }.distinctUntilChanged().collectLatest { (key, _) ->
-            if (key.isBlank()) {
-                _status.value = if (modelKey.value.isBlank()) ArtemisStatus.KeyRequired else ArtemisStatus.Waiting
+            (wanted && allowed) to attempt
+        }.distinctUntilChanged().collectLatest { (wanted, _) ->
+            if (!wanted) {
+                _status.value = ArtemisStatus.Waiting
             } else {
-                lease.withLock { openRuntime(key, token) }
+                lease.withLock { openRuntime(token) }
             }
         }
     }
 
-    private suspend fun openRuntime(key: String, token: String) {
+    private suspend fun openRuntime(token: String) {
         try {
             check(base.mkdirs() || base.isDirectory)
             check(stateDir.mkdirs() || stateDir.isDirectory)
             val image = installRuntime()
-            val network = context.getSystemService(ConnectivityManager::class.java)
-            val dns = network.activeNetwork?.let { network.getLinkProperties(it) }?.dnsServers.orEmpty()
-            check(dns.isNotEmpty())
-            File(stateDir, "resolv.conf").writeText(dns.joinToString("") { "nameserver ${it.hostAddress}\n" })
-            File(stateDir, "model_key").writeText(key)
             File(stateDir, "bridge_token").writeText(token)
             _status.value = ArtemisStatus.Starting
             runSupervisor(image)
@@ -158,7 +153,6 @@ class HeadlessArtemis @Inject constructor(
                 printf '%s  %s\n' ${quote(hash)} ${quote(archive.path)} | sha256sum -c -
                 tar -xzf ${quote(archive.path)} -C "${'$'}incoming"
                 test -x "${'$'}incoming/artemis-launcher"
-                test -f "${'$'}incoming/etc/resolv.conf" || touch "${'$'}incoming/etc/resolv.conf"
                 mv "${'$'}incoming" ${quote(image.path)}
                 """.trimIndent(),
                 timeoutSeconds = 540,
@@ -209,7 +203,7 @@ class HeadlessArtemis @Inject constructor(
 
     companion object {
         val available get() = BuildConfig.PERSONAL_BUILD && BuildConfig.ARTEMIS_RUNTIME_SHA256.isNotEmpty()
-        private const val RUNTIME_URL = "https://github.com/Egor09390/android-remote-control-mcp/releases/download/headless-artemis-preview/artemis-runtime-ubuntu24.04-arm64.tar.gz"
+        private const val RUNTIME_URL = "https://github.com/Egor09390/android-remote-control-mcp/releases/download/artemis-mcp-preview/artemis-runtime-ubuntu24.04-arm64.tar.gz"
         private val http = OkHttpClient.Builder().readTimeout(45, TimeUnit.SECONDS).build()
         private fun quote(value: String) = "'" + value.replace("'", "'\\''") + "'"
         private fun ByteArray.toHex(): String = joinToString("") { "%02x".format(it) }

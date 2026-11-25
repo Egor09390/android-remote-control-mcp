@@ -25,10 +25,11 @@ import kotlin.coroutines.resume
 /** MCP tools backed by the official ARTEMIS engine running alongside the app on this phone. */
 class LocalArtemisTools private constructor(
     private val token: String,
+    private val startHeadless: (() -> String?)?,
     private val currentConfig: suspend () -> ServerConfig,
 ) {
     fun register(registrar: LoggedToolRegistrar, prefix: String, permissions: ToolPermissionsConfig) {
-        for (tool in tools) {
+        for (tool in if (startHeadless == null) legacyTools else deviceTools) {
             if (!permissions.isToolEnabled(tool.name)) continue
             registrar.addTool(tool.name, prefix + tool.name, tool.description, tool.schema) { call ->
                 val config = currentConfig()
@@ -39,7 +40,10 @@ class LocalArtemisTools private constructor(
                     !config.toolPermissionsConfig.isToolEnabled(tool.name) ||
                         args.keys.any { !config.toolPermissionsConfig.isParamEnabled(tool.name, it) } ->
                         errorResult("This ARTEMIS tool or parameter is disabled.")
-                    else -> callLocal(tool.name, args)
+                    else -> {
+                        val preparation = startHeadless?.invoke()
+                        if (preparation == null) callLocal(tool.name, args) else errorResult(preparation)
+                    }
                 }
             }
         }
@@ -94,15 +98,56 @@ class LocalArtemisTools private constructor(
 
         fun isValidToken(token: String): Boolean = tokenFormat.matches(token)
 
-        fun forConfig(config: ServerConfig, currentConfig: suspend () -> ServerConfig): LocalArtemisTools? =
-            if (config.allowsArtemis()) LocalArtemisTools(config.localArtemisToken, currentConfig) else null
+        fun forConfig(
+            config: ServerConfig,
+            startHeadless: (() -> String?)? = null,
+            currentConfig: suspend () -> ServerConfig,
+        ): LocalArtemisTools? =
+            if (config.allowsArtemis()) LocalArtemisTools(config.localArtemisToken, startHeadless, currentConfig) else null
 
         private fun ServerConfig.allowsArtemis(): Boolean =
             isValidToken(localArtemisToken) &&
                 (oauthEnabled || (bearerTokenEnabled && bearerToken.isNotEmpty())) &&
                 !privacyModeConfig.enabled
 
-        private val tools = listOf(
+        private val deviceTools = listOf(
+            Tool("artemis_status", "Check or start the device action backend. Standard Android MCP tools are ready before ARTEMIS."),
+            Tool("artemis_screen", "Capture a screenshot through ARTEMIS. The MCP client chooses the next action."),
+            Tool(
+                "artemis_tap",
+                "Tap coordinates normalized to 0–1000 on each axis of the ARTEMIS screenshot.",
+                required = listOf("x", "y"),
+                fields = mapOf("x" to "Horizontal coordinate.", "y" to "Vertical coordinate."),
+                integerRanges = mapOf("x" to 0..1000, "y" to 0..1000),
+            ),
+            Tool(
+                "artemis_swipe",
+                "Swipe along a path selected by the MCP client. Coordinates are normalized to 0–1000.",
+                required = listOf("x1", "y1", "x2", "y2"),
+                fields = mapOf(
+                    "x1" to "Start x.", "y1" to "Start y.", "x2" to "End x.", "y2" to "End y.",
+                    "duration_ms" to "Duration in milliseconds. Defaults to 350.",
+                ),
+                integerRanges = mapOf(
+                    "x1" to 0..1000, "y1" to 0..1000, "x2" to 0..1000, "y2" to 0..1000,
+                    "duration_ms" to 100..3000,
+                ),
+            ),
+            Tool(
+                "artemis_type_text",
+                "Append text in the currently focused Android field.",
+                required = listOf("text"),
+                fields = mapOf("text" to "Text to enter."),
+            ),
+            Tool(
+                "artemis_press_key",
+                "Press one Android navigation key.",
+                required = listOf("key"),
+                fields = mapOf("key" to "back, home, or enter."),
+            ),
+        )
+
+        private val legacyTools = listOf(
             Tool("artemis_status", "Check that ARTEMIS and the paired Android device are available."),
             Tool(
                 "artemis_run_task",
@@ -138,12 +183,18 @@ class LocalArtemisTools private constructor(
         val description: String,
         required: List<String> = emptyList(),
         fields: Map<String, String> = emptyMap(),
+        integerRanges: Map<String, IntRange> = emptyMap(),
     ) {
         val schema = ToolSchema(
             properties = buildJsonObject {
                 fields.forEach { (field, label) ->
                     putJsonObject(field) {
-                        put("type", "string")
+                        val range = integerRanges[field]
+                        put("type", if (range == null) "string" else "integer")
+                        if (range != null) {
+                            put("minimum", range.first)
+                            put("maximum", range.last)
+                        }
                         put("description", label)
                     }
                 }

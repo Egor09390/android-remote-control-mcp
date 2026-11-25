@@ -209,7 +209,9 @@ private fun PersonalControlPanel(
                     showSettings = false
                 }, enabled = !running && !busy && (token.isNotBlank() || config.cloudpubToken.isNotBlank()), modifier = Modifier.fillMaxWidth()) { Text("Сохранить и подключить") }
                 if (HeadlessArtemis.available) {
-                    ArtemisKeySettings(artemis)
+                    if (artemisStatus in setOf(ArtemisStatus.RootRequired, ArtemisStatus.RuntimeError, ArtemisStatus.NetworkError, ArtemisStatus.AdbError)) {
+                        FilledTonalButton(onClick = artemis::retry) { Text("Повторить запуск ARTEMIS") }
+                    }
                 } else {
                     LocalArtemisSettings(
                         configured = config.localArtemisToken.isNotBlank(),
@@ -219,30 +221,6 @@ private fun PersonalControlPanel(
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun ArtemisKeySettings(artemis: HeadlessArtemis) {
-    var key by remember { mutableStateOf("") }
-    OutlinedTextField(
-        value = key,
-        onValueChange = { key = it.trim() },
-        label = { Text("Ключ Gemini для ARTEMIS") },
-        visualTransformation = PasswordVisualTransformation(),
-        singleLine = true,
-        modifier = Modifier.fillMaxWidth(),
-    )
-    Button(
-        enabled = key.isNotBlank(),
-        onClick = {
-            artemis.saveModelKey(key)
-            key = ""
-        },
-    ) { Text("Сохранить ключ Gemini") }
-    val status by artemis.status.collectAsStateWithLifecycle()
-    if (status in setOf(ArtemisStatus.RootRequired, ArtemisStatus.RuntimeError, ArtemisStatus.NetworkError, ArtemisStatus.AdbError)) {
-        FilledTonalButton(onClick = artemis::retry) { Text("Повторить запуск ARTEMIS") }
     }
 }
 

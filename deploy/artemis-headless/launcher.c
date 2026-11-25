@@ -73,10 +73,6 @@ int main(int argc, char **argv) {
         fail("private proc mount");
     path(target, argv[1], "/runtime");
     bind_at(argv[2], target, MS_NODEV);
-    char resolver[PATH_MAX];
-    path(resolver, argv[2], "/resolv.conf");
-    path(target, argv[1], "/etc/resolv.conf");
-    bind_at(resolver, target, MS_RDONLY | MS_NODEV);
     path(target, argv[1], "/dev");
     if (mount("tmpfs", target, "tmpfs", MS_NOSUID | MS_NOEXEC, "mode=755,size=16m") != 0)
         fail("private dev mount");

@@ -58,6 +58,7 @@ class McpToolRegistrationTest {
         deviceSlug: String = "",
         perms: ToolPermissionsConfig = ToolPermissionsConfig(),
         config: ServerConfig = ServerConfig(),
+        startHeadless: (() -> String?)? = null,
     ): Set<String> {
         val server =
             Server(
@@ -73,7 +74,7 @@ class McpToolRegistrationTest {
             perms,
             ServerConfig.DEFAULT_FILE_SIZE_LIMIT_MB,
             toolCallIndicatorEnabled = false,
-            localArtemis = LocalArtemisTools.forConfig(config) { config },
+            localArtemis = LocalArtemisTools.forConfig(config, startHeadless) { config },
         ) { McpIntegrationTestHelper.TEST_BASE_URL }
         return server.tools.keys.toSet()
     }
@@ -123,6 +124,18 @@ class McpToolRegistrationTest {
         assertEquals(
             baseline,
             registered(config = config.copy(privacyModeConfig = config.privacyModeConfig.copy(enabled = true))),
+        )
+    }
+
+    @Test
+    fun `headless route exposes device actions to the MCP client without autonomous task tools`() {
+        val config = ServerConfig(localArtemisToken = "a".repeat(64))
+        val newTools = registered(config = config, startHeadless = { null }) - registered()
+
+        assertEquals(
+            setOf("status", "screen", "tap", "swipe", "type_text", "press_key")
+                .map { "android_artemis_$it" }.toSet(),
+            newTools,
         )
     }
 

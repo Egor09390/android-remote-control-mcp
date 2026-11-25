@@ -19,9 +19,9 @@ RUN python3 -m venv /tmp/bootstrap \
     && mkdir -p /runtime /opt/bridge/bin
 COPY --from=launcher /artemis-launcher /artemis-launcher
 COPY deploy/artemis-local/bin/adb /opt/bridge/bin/adb
-COPY deploy/artemis-local/bridge.py deploy/artemis-local/sitecustomize.py deploy/artemis-local/test_bridge.py /opt/bridge/
-COPY deploy/artemis-headless/run /opt/bridge/run
+COPY deploy/artemis-local/sitecustomize.py /opt/bridge/
+COPY deploy/artemis-headless/run deploy/artemis-headless/action_bridge.py deploy/artemis-headless/test_action_bridge.py /opt/bridge/
 RUN chmod 0755 /opt/bridge/run /opt/bridge/bin/adb \
     && PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=/opt/bridge:/opt/artemis ARTEMIS_APP_DIR=/tmp/artemis-check ARTEMIS_STANDALONE=1 \
-       /opt/artemis/.venv/bin/python -m unittest -q test_bridge \
+       /opt/artemis/.venv/bin/python -m unittest -q test_action_bridge \
     && rm -rf /tmp/artemis-check

@@ -247,7 +247,11 @@ class McpServerService : Service() {
                 effectivePerms,
                 config.fileSizeLimitMb,
                 config.toolCallIndicatorEnabled,
-                localArtemis = LocalArtemisTools.forConfig(config) { settingsRepository.getServerConfig() },
+                localArtemis = LocalArtemisTools.forConfig(
+                    config,
+                    startHeadless = if (HeadlessArtemis.available) headlessArtemis::requestStart else null,
+                    currentConfig = { settingsRepository.getServerConfig() },
+                ),
                 currentBaseUrl = currentBaseUrl,
             )
 

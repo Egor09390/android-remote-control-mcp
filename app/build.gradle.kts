@@ -266,7 +266,7 @@ android {
         release {
             // Separate app identity for experimental APKs to avoid uninstalling the user's working release.
             if (artemisRuntimeSha.isNotEmpty()) {
-                applicationIdSuffix = ".headless"
+                applicationIdSuffix = ".mcpclient"
             } else if (project.hasProperty("OWN_VPS_TEST_APK")) {
                 applicationIdSuffix = ".ownvps"
             }
