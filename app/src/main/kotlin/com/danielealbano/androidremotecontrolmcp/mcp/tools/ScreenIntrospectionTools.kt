@@ -69,13 +69,17 @@ class GetScreenStateHandler
         private val privacyToolGate: PrivacyToolGate,
         private val screenshotRedactor: ScreenshotRedactor,
     ) {
-        @Volatile private var includeScreenshotEnabled: Boolean = true
-
-        suspend fun execute(arguments: JsonObject?): CallToolResult {
-            val includeScreenshot = parseIncludeScreenshot(arguments)
+        suspend fun execute(
+            arguments: JsonObject?,
+            includeScreenshotParamEnabled: Boolean = true,
+            treeFirst: Boolean = false,
+        ): CallToolResult {
+            val allowInlineImage = includeScreenshotParamEnabled && !treeFirst
+            val includeScreenshot =
+                allowInlineImage && (arguments?.get(PARAM_INCLUDE_SCREENSHOT)?.jsonPrimitive?.booleanOrNull ?: false)
             // Validated with a cursor too, although the cursor's page keeps the options of its fresh capture
-            val annotate = parseAnnotate(arguments)
-            val formatOptions = parseFormatOptions(arguments)
+            val annotate = !allowInlineImage || McpToolUtils.optionalBoolean(arguments, PARAM_ANNOTATE, true)
+            val formatOptions = parseFormatOptions(arguments, treeFirst)
             val cursorElement = arguments?.get("cursor")
             // Absent, JSON null, or a blank string ⇒ fresh cursorless capture (settled behavior 1).
             // A present, non-blank value (INCLUDING a non-primitive object/array) ⇒ paged path,
@@ -91,21 +95,21 @@ class GetScreenStateHandler
             }
         }
 
-        private fun parseIncludeScreenshot(arguments: JsonObject?): Boolean =
-            if (includeScreenshotEnabled) {
-                arguments?.get("include_screenshot")?.jsonPrimitive?.booleanOrNull ?: false
-            } else {
-                false
-            }
+        private suspend fun captureScreenshot(arguments: JsonObject?): CallToolResult =
+            handleFreshRequest(
+                includeScreenshot = true,
+                annotate = McpToolUtils.optionalBoolean(arguments, PARAM_ANNOTATE, true),
+                options = ScreenStateFormatOptions(includeOffscreen = false, elementNote = NODE_BOUNDS_NOTE),
+            )
 
-        /** `annotate` only exists while `include_screenshot` does; it defaults to the annotated screenshot. */
-        private fun parseAnnotate(arguments: JsonObject?): Boolean =
-            !includeScreenshotEnabled || McpToolUtils.optionalBoolean(arguments, PARAM_ANNOTATE, true)
-
-        private fun parseFormatOptions(arguments: JsonObject?): ScreenStateFormatOptions =
+        private fun parseFormatOptions(
+            arguments: JsonObject?,
+            treeFirst: Boolean,
+        ): ScreenStateFormatOptions =
             ScreenStateFormatOptions(
                 includeOffscreen = McpToolUtils.optionalBoolean(arguments, PARAM_INCLUDE_OFFSCREEN, true),
                 includeHierarchy = McpToolUtils.optionalBoolean(arguments, PARAM_INCLUDE_HIERARCHY, true),
+                elementNote = if (treeFirst) NODE_BOUNDS_NOTE else CompactTreeFormatter.NOTE_LINE_CUSTOM_ELEMENTS,
             )
 
         private suspend fun handleFreshRequest(
@@ -302,12 +306,20 @@ class GetScreenStateHandler
             registrar: LoggedToolRegistrar,
             toolNamePrefix: String,
             includeScreenshotParamEnabled: Boolean = true,
+            treeFirst: Boolean = false,
         ) {
-            includeScreenshotEnabled = includeScreenshotParamEnabled
-            registrar.addTool(
-                toolName = TOOL_NAME,
-                name = "$toolNamePrefix$TOOL_NAME",
-                description =
+            val hasScreenshotTool = treeFirst && includeScreenshotParamEnabled
+            val description =
+                if (treeFirst) {
+                    "Read the Android accessibility tree first when deciding what is on screen and where to act. " +
+                        "Returns app metadata, screen dimensions, UI node IDs, labels, and exact bounds in screen pixels " +
+                        "(left,top,right,bottom). Use a clickable node's ID with ${toolNamePrefix}click_node or touch " +
+                        "within its bounds with ${toolNamePrefix}tap_node. Use ${toolNamePrefix}tap for exact pixel coordinates. " +
+                        "Use ${toolNamePrefix}get_node_details for truncated labels. " +
+                        "Set include_hierarchy=false for a flat node list. On large screens, " +
+                        "use the returned cursor to read the next page if the target is still missing. " +
+                        "Set include_offscreen=false to list on-screen nodes only."
+                } else {
                     "Returns the current screen state: app info, screen dimensions, " +
                         "and a compact UI node list (text/desc truncated to 100 chars, use " +
                         "${toolNamePrefix}get_node_details to retrieve full values). Optionally includes a " +
@@ -316,26 +328,55 @@ class GetScreenStateHandler
                         "Includes a hierarchy section showing node nesting via indentation " +
                         "(leave it out with include_hierarchy=false). " +
                         "Large screens are split into pages of 200 nodes: the response includes a " +
-                        "'page:N/total' line and a cursor; call again with that cursor to fetch the " +
-                        "next page. You do NOT need to fetch every page — stop once you have found " +
-                        "what you need. A screenshot can only be requested on page 1 (without a cursor). " +
-                        "Set include_offscreen=false to list on-screen nodes only.",
+                        "'page:N/total' line and a cursor. Call again with that cursor to fetch the " +
+                        "next page. Stop once you have found what you need. " +
+                        "A screenshot can only be requested on page 1 (without a cursor). " +
+                        "Set include_offscreen=false to list on-screen nodes only."
+                }
+            registrar.addTool(
+                toolName = TOOL_NAME,
+                name = "$toolNamePrefix$TOOL_NAME",
+                description = description,
                 inputSchema =
                     ToolSchema(
-                        properties = getScreenStateProperties(includeScreenshotParamEnabled),
+                        properties = getScreenStateProperties(includeScreenshotParamEnabled && !treeFirst),
                         required = emptyList(),
                     ),
-            ) { request -> execute(request.arguments) }
+            ) { request -> execute(request.arguments, includeScreenshotParamEnabled, treeFirst) }
+            if (hasScreenshotTool) registerScreenshot(registrar, toolNamePrefix)
+        }
+
+        private fun registerScreenshot(
+            registrar: LoggedToolRegistrar,
+            toolNamePrefix: String,
+        ) {
+            registrar.addTool(
+                toolName = SCREENSHOT_TOOL_NAME,
+                name = "$toolNamePrefix$SCREENSHOT_TOOL_NAME",
+                description =
+                    "Capture an image of the current screen alongside its on-screen accessibility nodes. " +
+                        "Use ${toolNamePrefix}$TOOL_NAME first to find buttons, labels, and exact positions. " +
+                        "Call this for visual content, controls missing from the tree, or a requested screenshot.",
+                inputSchema =
+                    ToolSchema(
+                        properties = buildJsonObject { put(PARAM_ANNOTATE, screenshotAnnotationSchema()) },
+                        required = emptyList(),
+                    ),
+            ) { request -> captureScreenshot(request.arguments) }
         }
 
         companion object {
             const val TOOL_NAME = "get_screen_state"
+            const val SCREENSHOT_TOOL_NAME = "capture_screenshot"
             internal const val SCREENSHOT_MAX_SIZE = 700
             private const val TAG = "MCP:ScreenIntrospection"
             internal const val CURSOR_RADIX = 36
+            internal const val PARAM_INCLUDE_SCREENSHOT = "include_screenshot"
             internal const val PARAM_ANNOTATE = "annotate"
             internal const val PARAM_INCLUDE_OFFSCREEN = "include_offscreen"
             internal const val PARAM_INCLUDE_HIERARCHY = "include_hierarchy"
+            private const val NODE_BOUNDS_NOTE =
+                "note:bounds are left,top,right,bottom in screen pixels. node_id identifies the element for node actions."
             internal const val INVALID_CURSOR_MESSAGE =
                 "note:invalid cursor. Call get_screen_state without a cursor to get a fresh " +
                     "screen-state snapshot starting at page 1."
@@ -382,6 +423,7 @@ fun registerScreenIntrospectionTools(
     screenshotRedactor: ScreenshotRedactor,
     toolNamePrefix: String,
     perms: ToolPermissionsConfig,
+    treeFirst: Boolean = false,
 ) {
     if (perms.isToolEnabled(GetScreenStateHandler.TOOL_NAME)) {
         GetScreenStateHandler(
@@ -399,7 +441,10 @@ fun registerScreenIntrospectionTools(
         ).register(
             registrar,
             toolNamePrefix,
-            includeScreenshotParamEnabled = perms.isParamEnabled(GetScreenStateHandler.TOOL_NAME, "include_screenshot"),
+            includeScreenshotParamEnabled =
+                perms.isParamEnabled(GetScreenStateHandler.TOOL_NAME, GetScreenStateHandler.PARAM_INCLUDE_SCREENSHOT) &&
+                    (!treeFirst || perms.isToolEnabled(GetScreenStateHandler.SCREENSHOT_TOOL_NAME)),
+            treeFirst = treeFirst,
         )
     }
 }
@@ -411,7 +456,7 @@ fun registerScreenIntrospectionTools(
 private fun getScreenStateProperties(includeScreenshotParamEnabled: Boolean): JsonObject =
     buildJsonObject {
         if (includeScreenshotParamEnabled) {
-            putJsonObject("include_screenshot") {
+            putJsonObject(GetScreenStateHandler.PARAM_INCLUDE_SCREENSHOT) {
                 put("type", "boolean")
                 put(
                     "description",
@@ -420,15 +465,7 @@ private fun getScreenStateProperties(includeScreenshotParamEnabled: Boolean): Js
                 )
                 put("default", false)
             }
-            putJsonObject(GetScreenStateHandler.PARAM_ANNOTATE) {
-                put("type", "boolean")
-                put(
-                    "description",
-                    "With include_screenshot=true: draw the node bounding boxes and ids on the screenshot. " +
-                        "Set false for the plain screenshot.",
-                )
-                put("default", true)
-            }
+            put(GetScreenStateHandler.PARAM_ANNOTATE, screenshotAnnotationSchema())
         }
         putJsonObject("cursor") {
             put("type", "string")
@@ -460,6 +497,13 @@ private fun getScreenStateProperties(includeScreenshotParamEnabled: Boolean): Js
             )
             put("default", true)
         }
+    }
+
+private fun screenshotAnnotationSchema(): JsonObject =
+    buildJsonObject {
+        put("type", "boolean")
+        put("description", "Draw node bounds and IDs on the screenshot. Set false for the plain screenshot.")
+        put("default", true)
     }
 
 /**

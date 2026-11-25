@@ -225,6 +225,7 @@ android {
         buildConfigField("String", "ARTEMIS_RUNTIME_SHA256", "\"$artemisRuntimeSha\"")
         if (personalBuild) ndk { abiFilters += "arm64-v8a" }
         applicationId = "com.danielealbano.androidremotecontrolmcp"
+        manifestPlaceholders["appLabel"] = "@string/app_name"
         minSdk = 33
         targetSdk = 34
         versionCode = versionCodeProp
@@ -264,9 +265,10 @@ android {
             isMinifyEnabled = false
         }
         release {
-            // Separate app identity for experimental APKs to avoid uninstalling the user's working release.
+            // The earlier preview used a one-off signing key, so install this preview alongside it.
             if (artemisRuntimeSha.isNotEmpty()) {
-                applicationIdSuffix = ".mcpclient"
+                applicationIdSuffix = ".mcpclient.tree"
+                manifestPlaceholders["appLabel"] = "S23 Control Tree"
             } else if (project.hasProperty("OWN_VPS_TEST_APK")) {
                 applicationIdSuffix = ".ownvps"
             }

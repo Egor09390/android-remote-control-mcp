@@ -1,4 +1,4 @@
-name: Build S23 Control for MCP clients
+name: Build S23 Control with accessibility-first screen tools
 
 on:
   push:
@@ -10,44 +10,25 @@ permissions:
   contents: read
 
 concurrency:
-  group: artemis-mcp-preview
+  group: screen-tree-preview
   cancel-in-progress: true
 
 jobs:
-  runtime:
-    if: github.ref == 'refs/heads/feature/client-controlled-artemis'
-    runs-on: ubuntu-24.04-arm
-    timeout-minutes: 35
-    outputs:
-      checksum: ${{ steps.package.outputs.checksum }}
-    steps:
-      - uses: actions/checkout@v4
-      - name: Build and test the ARM64 headless CLI
-        run: docker build -f deploy/artemis-headless/Dockerfile -t s23-artemis-runtime .
-      - name: Package the runtime for Android
-        id: package
-        run: |
-          set -euo pipefail
-          mkdir -p dist
-          container="$(docker create s23-artemis-runtime)"
-          trap 'docker rm "$container" >/dev/null' EXIT
-          archive=dist/artemis-runtime-ubuntu24.04-arm64.tar.gz
-          docker export "$container" | gzip -1 > "$archive"
-          test -s "$archive"
-          test "$(stat -c %s "$archive")" -lt 2147483648
-          echo "checksum=$(sha256sum "$archive" | cut -d ' ' -f 1)" >> "$GITHUB_OUTPUT"
-      - uses: actions/upload-artifact@v4
-        with:
-          name: artemis-runtime-arm64
-          path: dist/artemis-runtime-ubuntu24.04-arm64.tar.gz
-          compression-level: 0
-          if-no-files-found: error
-
   apk:
-    needs: runtime
+    if: github.ref == 'refs/heads/feature/client-controlled-artemis'
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    env:
+      RUNTIME_SHA: 43b2242540ce98e03f944ff72d045dab94f23ba6bde1f829d730e34f6a90cdb3
     steps:
+      - name: Verify the previously published ARTEMIS runtime
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          digest="$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/artemis-mcp-preview" \
+            --jq '.assets[] | select(.name == "artemis-runtime-ubuntu24.04-arm64.tar.gz" and .state == "uploaded") | .digest')"
+          test "$digest" = "sha256:$RUNTIME_SHA"
       - uses: actions/checkout@v4
         with:
           submodules: recursive
@@ -73,17 +54,18 @@ jobs:
           (cd ngrok-java-native/target/classes && jar cf ../ngrok-java-native-classes.jar com/)
           (cd ngrok-java-native && cargo build --release)
           (cd ngrok-java-native/target/release && jar cf ../ngrok-java-native-host.jar libngrok_java.so)
-      - name: Check the native and client-controlled MCP tool catalog
+      - name: Test accessibility tree and explicit screenshot over MCP
         run: >-
           ./gradlew --no-daemon :app:testFossDebugUnitTest -PPERSONAL_BUILD=true
           --tests '*McpToolRegistrationTest'
+          --tests '*ScreenIntrospectionToolsTest'
+          --tests '*ScreenIntrospectionIntegrationTest'
       - name: Sign the S23 preview APK
         env:
           RU_KEYSTORE_BASE64: ${{ secrets.RU_KEYSTORE_BASE64 }}
           RU_KEYSTORE_PASSWORD: ${{ secrets.RU_KEYSTORE_PASSWORD }}
           RU_KEY_ALIAS: ${{ secrets.RU_KEY_ALIAS }}
           RU_KEY_PASSWORD: ${{ secrets.RU_KEY_PASSWORD }}
-          RUNTIME_SHA: ${{ needs.runtime.outputs.checksum }}
         run: |
           set -euo pipefail
           umask 077
@@ -104,51 +86,50 @@ jobs:
           ./gradlew --no-daemon :app:assembleFossRelease \
             -PPERSONAL_BUILD=true -PARTEMIS_RUNTIME_SHA256="$RUNTIME_SHA"
           mkdir -p dist
-          cp app/build/outputs/apk/foss/release/app-foss-release.apk dist/android-mcp-s23-client.apk
+          cp app/build/outputs/apk/foss/release/app-foss-release.apk dist/android-mcp-s23-tree.apk
           apksigner="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -1)"
-          "$apksigner" verify dist/android-mcp-s23-client.apk
+          "$apksigner" verify dist/android-mcp-s23-tree.apk
           python - <<'PY'
+          import os
           import zipfile
-          with zipfile.ZipFile("dist/android-mcp-s23-client.apk") as apk:
+          with zipfile.ZipFile("dist/android-mcp-s23-tree.apk") as apk:
               assert "assets/artemis-supervise.sh" in apk.namelist()
               assert "lib/arm64-v8a/libcloudpub.so" in apk.namelist()
-              assert any(b"HeadlessArtemis" in apk.read(name) for name in apk.namelist() if name.endswith(".dex"))
+              dex = [apk.read(name) for name in apk.namelist() if name.endswith(".dex")]
+              for expected in (b"capture_screenshot", b"HeadlessArtemis", os.environ["RUNTIME_SHA"].encode()):
+                  assert any(expected in part for part in dex), expected
           PY
       - uses: actions/upload-artifact@v4
         with:
-          name: artemis-headless-apk
-          path: dist/android-mcp-s23-client.apk
+          name: s23-screen-tree-apk
+          path: dist/android-mcp-s23-tree.apk
           compression-level: 0
           if-no-files-found: error
 
   release:
-    needs: [runtime, apk]
+    needs: apk
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
       - uses: actions/download-artifact@v4
         with:
-          pattern: artemis-*
+          name: s23-screen-tree-apk
           path: dist
-          merge-multiple: true
-      - name: Publish the Android APK and its verified runtime
+      - name: Publish the S23 APK
         env:
           GH_TOKEN: ${{ github.token }}
-          RUNTIME_SHA: ${{ needs.runtime.outputs.checksum }}
         run: |
           set -euo pipefail
-          printf '%s  %s\n' "$RUNTIME_SHA" dist/artemis-runtime-ubuntu24.04-arm64.tar.gz | sha256sum -c -
           cat > notes.md <<'EOF'
-          Действия выбирает модель подключённого MCP-клиента, например ChatGPT.
-          После подключения CloudPub штатные команды Android доступны сразу.
-          Первый вызов команды ARTEMIS автоматически загружает и запускает
-          дополнительные инструменты устройства. Ключ провайдера модели в APK не вводится.
+          `android_get_screen_state` возвращает дерево экрана с ID и координатами элементов.
+          Отдельная команда `android_capture_screenshot` возвращает дерево и снимок.
+          Доступ к снимку можно отключить в настройках S23 Control при остановленном MCP.
 
-          Предварительная сборка. Автоматический запуск на физическом Samsung S23
-          требует проверки.
+          S23 Control Tree устанавливается рядом с предыдущей сборкой. Подключите
+          CloudPub в новом приложении и используйте выданный адрес MCP.
           EOF
-          gh release create artemis-mcp-preview dist/* \
+          gh release create screen-tree-preview dist/android-mcp-s23-tree.apk \
             --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
-            --title "S23 Control — MCP Client Preview" \
+            --title "S23 Control — Accessibility Tree Preview" \
             --prerelease --latest=false --notes-file notes.md

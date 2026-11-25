@@ -37,6 +37,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.danielealbano.androidremotecontrolmcp.data.model.ServerStatus
 import com.danielealbano.androidremotecontrolmcp.data.model.TunnelStatus
+import com.danielealbano.androidremotecontrolmcp.mcp.tools.GetScreenStateHandler
 import com.danielealbano.androidremotecontrolmcp.ui.ApprovalActivity
 import com.danielealbano.androidremotecontrolmcp.ui.components.LocalArtemisSettings
 import com.danielealbano.androidremotecontrolmcp.ui.theme.AndroidRemoteControlMcpTheme
@@ -199,6 +200,23 @@ private fun PersonalControlPanel(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("Запуск после перезагрузки", modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
                     Switch(config.autoStartOnBoot, model::updateAutoStartOnBoot)
+                }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("Снимки экрана по запросу", modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+                    Switch(
+                        checked = config.toolPermissionsConfig.isParamEnabled(
+                            GetScreenStateHandler.TOOL_NAME,
+                            GetScreenStateHandler.PARAM_INCLUDE_SCREENSHOT,
+                        ),
+                        onCheckedChange = { enabled ->
+                            model.updateParamEnabled(
+                                GetScreenStateHandler.TOOL_NAME,
+                                GetScreenStateHandler.PARAM_INCLUDE_SCREENSHOT,
+                                enabled,
+                            )
+                        },
+                        enabled = !running && !busy,
+                    )
                 }
                 Text(if (state.backupReady) "✓ Настройки сохранены для переустановки" else "✕ Резервная копия ещё не создана",
                     color = if (state.backupReady) Success else Failure, style = MaterialTheme.typography.bodySmall)

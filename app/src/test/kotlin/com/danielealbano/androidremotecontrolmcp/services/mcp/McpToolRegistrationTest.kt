@@ -59,6 +59,7 @@ class McpToolRegistrationTest {
         perms: ToolPermissionsConfig = ToolPermissionsConfig(),
         config: ServerConfig = ServerConfig(),
         startHeadless: (() -> String?)? = null,
+        treeFirst: Boolean = false,
     ): Set<String> {
         val server =
             Server(
@@ -75,6 +76,7 @@ class McpToolRegistrationTest {
             ServerConfig.DEFAULT_FILE_SIZE_LIMIT_MB,
             toolCallIndicatorEnabled = false,
             localArtemis = LocalArtemisTools.forConfig(config, startHeadless) { config },
+            treeFirst = treeFirst,
         ) { McpIntegrationTestHelper.TEST_BASE_URL }
         return server.tools.keys.toSet()
     }
@@ -133,10 +135,22 @@ class McpToolRegistrationTest {
         val newTools = registered(config = config, startHeadless = { null }) - registered()
 
         assertEquals(
-            setOf("status", "screen", "tap", "swipe", "type_text", "press_key")
+            setOf("status", "tap", "swipe", "type_text", "press_key")
                 .map { "android_artemis_$it" }.toSet(),
             newTools,
         )
+    }
+
+    @Test
+    fun `tree first build exposes a screenshot only while screenshot permission is enabled`() {
+        val prefix = McpToolUtils.buildToolNamePrefix(DEVICE_SLUG)
+        val baseline = registered(deviceSlug = DEVICE_SLUG)
+        val screenshotsDisabled = ToolPermissionsConfig(
+            disabledParams = mapOf("get_screen_state" to setOf("include_screenshot")),
+        )
+
+        assertEquals(baseline + "${prefix}capture_screenshot", registered(deviceSlug = DEVICE_SLUG, treeFirst = true))
+        assertEquals(baseline, registered(deviceSlug = DEVICE_SLUG, perms = screenshotsDisabled, treeFirst = true))
     }
 
     private companion object {

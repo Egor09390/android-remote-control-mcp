@@ -252,6 +252,7 @@ object McpIntegrationTestHelper {
         deps: MockDependencies,
         deviceSlug: String = "",
         perms: ToolPermissionsConfig = ToolPermissionsConfig(),
+        treeFirst: Boolean = false,
     ) {
         val toolNamePrefix = McpToolUtils.buildToolNamePrefix(deviceSlug)
         val registrar = LoggedToolRegistrar(server, deps.serverLog, inFlightToolCalls = deps.inFlightToolCalls)
@@ -270,6 +271,7 @@ object McpIntegrationTestHelper {
             ScreenshotRedactor(),
             toolNamePrefix,
             perms,
+            treeFirst,
         )
         registerSystemActionTools(
             registrar,
@@ -389,6 +391,7 @@ object McpIntegrationTestHelper {
         deps: MockDependencies,
         deviceSlug: String = "",
         perms: ToolPermissionsConfig = ToolPermissionsConfig(),
+        treeFirst: Boolean = false,
     ): Server {
         val server =
             Server(
@@ -405,7 +408,7 @@ object McpIntegrationTestHelper {
                             ),
                     ),
             )
-        registerAllTools(server, deps, deviceSlug, perms)
+        registerAllTools(server, deps, deviceSlug, perms, treeFirst)
         return server
     }
 
@@ -424,9 +427,10 @@ object McpIntegrationTestHelper {
         deps: MockDependencies = createMockDependencies(),
         deviceSlug: String = "",
         perms: ToolPermissionsConfig = ToolPermissionsConfig(),
+        treeFirst: Boolean = false,
         testBlock: suspend (client: Client, deps: MockDependencies) -> Unit,
     ) {
-        val sdkServer = createSdkServer(deps, deviceSlug, perms)
+        val sdkServer = createSdkServer(deps, deviceSlug, perms, treeFirst)
 
         testApplication {
             application {

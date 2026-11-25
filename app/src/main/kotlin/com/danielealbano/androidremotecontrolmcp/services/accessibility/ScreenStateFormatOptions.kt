@@ -7,8 +7,10 @@ package com.danielealbano.androidremotecontrolmcp.services.accessibility
  *   hierarchy line. Their on-screen descendants are still listed, nested under the nearest listed ancestor, the same
  *   way the children of structural-only nodes are.
  * @property includeHierarchy When false, the `hierarchy:` block of every window is left out.
+ * @property elementNote Guidance printed above the element rows on every page.
  */
 data class ScreenStateFormatOptions(
     val includeOffscreen: Boolean = true,
     val includeHierarchy: Boolean = true,
+    val elementNote: String = CompactTreeFormatter.NOTE_LINE_CUSTOM_ELEMENTS,
 )

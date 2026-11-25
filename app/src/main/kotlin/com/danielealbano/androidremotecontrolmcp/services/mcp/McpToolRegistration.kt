@@ -1,5 +1,6 @@
 package com.danielealbano.androidremotecontrolmcp.services.mcp
 
+import com.danielealbano.androidremotecontrolmcp.BuildConfig
 import com.danielealbano.androidremotecontrolmcp.data.model.ToolPermissionsConfig
 import com.danielealbano.androidremotecontrolmcp.data.repository.ServerLogRepository
 import com.danielealbano.androidremotecontrolmcp.mcp.InFlightToolCalls
@@ -47,6 +48,7 @@ class McpToolRegistration
             fileSizeLimitMb: Int,
             toolCallIndicatorEnabled: Boolean,
             localArtemis: LocalArtemisTools? = null,
+            treeFirst: Boolean = BuildConfig.PERSONAL_BUILD,
             currentBaseUrl: () -> String,
         ) {
             val toolCallIndicator = ReferenceCountedToolCallIndicator(AccessibilityToolCallIndicator())
@@ -58,6 +60,7 @@ class McpToolRegistration
                     toolCallIndicator,
                     inFlightToolCalls,
                 )
+            registerScreenTools(registrar, toolNamePrefix, perms, treeFirst)
             registerAccessibilityToolBundle(registrar, toolNamePrefix, perms)
             val d = device
             registerFileTools(registrar, d.storageLocationProvider, d.fileOperationProvider, toolNamePrefix, perms)
@@ -83,7 +86,6 @@ class McpToolRegistration
             perms: ToolPermissionsConfig,
         ) {
             val a = accessibility
-            registerScreenTools(registrar, toolNamePrefix, perms)
             registerSystemActionTools(
                 registrar,
                 a.actionExecutor,
@@ -135,6 +137,7 @@ class McpToolRegistration
             registrar: LoggedToolRegistrar,
             toolNamePrefix: String,
             perms: ToolPermissionsConfig,
+            treeFirst: Boolean,
         ) {
             registerScreenIntrospectionTools(
                 registrar,
@@ -151,6 +154,7 @@ class McpToolRegistration
                 privacy.screenshotRedactor,
                 toolNamePrefix,
                 perms,
+                treeFirst,
             )
         }
 

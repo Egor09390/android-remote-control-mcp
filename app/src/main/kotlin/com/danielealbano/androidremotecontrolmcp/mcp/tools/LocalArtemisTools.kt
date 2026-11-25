@@ -112,17 +112,18 @@ class LocalArtemisTools private constructor(
 
         private val deviceTools = listOf(
             Tool("artemis_status", "Check or start the device action backend. Standard Android MCP tools are ready before ARTEMIS."),
-            Tool("artemis_screen", "Capture a screenshot through ARTEMIS. The MCP client chooses the next action."),
             Tool(
                 "artemis_tap",
-                "Tap coordinates normalized to 0–1000 on each axis of the ARTEMIS screenshot.",
+                "Tap through ARTEMIS at coordinates normalized to 0–1000 on each axis of the screen. " +
+                    "Get the node bounds from get_screen_state first. Prefer click_node or tap_node when a node ID is available.",
                 required = listOf("x", "y"),
                 fields = mapOf("x" to "Horizontal coordinate.", "y" to "Vertical coordinate."),
                 integerRanges = mapOf("x" to 0..1000, "y" to 0..1000),
             ),
             Tool(
                 "artemis_swipe",
-                "Swipe along a path selected by the MCP client. Coordinates are normalized to 0–1000.",
+                "Swipe through ARTEMIS from one screen point to another. Coordinates are normalized to 0–1000. " +
+                    "Use the screen dimensions and node bounds from get_screen_state to locate the gesture.",
                 required = listOf("x1", "y1", "x2", "y2"),
                 fields = mapOf(
                     "x1" to "Start x.", "y1" to "Start y.", "x2" to "End x.", "y2" to "End y.",

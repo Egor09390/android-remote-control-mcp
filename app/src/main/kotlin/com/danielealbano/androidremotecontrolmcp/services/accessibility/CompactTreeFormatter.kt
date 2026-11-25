@@ -149,7 +149,7 @@ class CompactTreeFormatter
 
             // Note lines
             sb.appendLine(NOTE_LINE)
-            sb.appendLine(NOTE_LINE_CUSTOM_ELEMENTS)
+            sb.appendLine(options.elementNote)
             sb.appendLine(NOTE_LINE_FLAGS_LEGEND)
             sb.appendLine(offscreenNote(options))
 
@@ -412,7 +412,7 @@ internal fun CompactTreeFormatter.formatMultiWindowPage(
     val sb = StringBuilder()
     if (result.degraded) sb.appendLine(CompactTreeFormatter.DEGRADATION_NOTE)
     sb.appendLine(CompactTreeFormatter.NOTE_LINE)
-    sb.appendLine(CompactTreeFormatter.NOTE_LINE_CUSTOM_ELEMENTS)
+    sb.appendLine(options.elementNote)
     sb.appendLine(CompactTreeFormatter.NOTE_LINE_FLAGS_LEGEND)
     sb.appendLine(offscreenNote(options))
     sb.appendLine(

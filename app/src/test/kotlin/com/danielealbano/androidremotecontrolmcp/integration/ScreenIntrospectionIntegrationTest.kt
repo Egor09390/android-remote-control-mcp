@@ -227,6 +227,60 @@ class ScreenIntrospectionIntegrationTest {
         }
 
     @Test
+    fun `tree first screen state returns exact bounds without capturing an image even for older clients`() =
+        runTest {
+            val deps = McpIntegrationTestHelper.createMockDependencies()
+            deps.setupReadyService()
+
+            McpIntegrationTestHelper.withTestApplication(deps, treeFirst = true) { client, _ ->
+                val tools = client.listTools().tools.associateBy { it.name }
+                assertEquals(
+                    setOf("cursor", "include_offscreen", "include_hierarchy"),
+                    tools.getValue("android_get_screen_state").inputSchema.properties?.keys,
+                )
+                assertEquals(setOf("annotate"), tools.getValue("android_capture_screenshot").inputSchema.properties?.keys)
+
+                val result =
+                    client.callTool(
+                        name = "android_get_screen_state",
+                        arguments = mapOf("include_screenshot" to true, "annotate" to true),
+                    )
+                assertNotEquals(true, result.isError)
+                val text = (result.content.single() as TextContent).text
+                assertTrue(text.contains("node_btn\tButton\tOK\t-\t-\t100,200,300,260\ton,clk,ena"), text)
+                assertTrue(text.contains("left,top,right,bottom in screen pixels"), text)
+                assertFalse(text.contains("include_screenshot"), text)
+            }
+            coVerify(exactly = 0) { deps.screenCaptureProvider.captureScreenshotBitmap(any(), any()) }
+        }
+
+    @Test
+    fun `explicit screenshot returns the tree and the image`() =
+        runTest {
+            val deps = McpIntegrationTestHelper.createMockDependencies()
+            deps.setupReadyService()
+            every { deps.screenCaptureProvider.isScreenCaptureAvailable() } returns true
+            coEvery {
+                deps.screenCaptureProvider.captureScreenshotBitmap(any(), any())
+            } returns Result.success(mockk<Bitmap>(relaxed = true))
+            every {
+                deps.screenshotEncoder.bitmapToScreenshotData(any(), any())
+            } returns ScreenshotData(data = "dGVzdA==", width = 700, height = 500)
+
+            McpIntegrationTestHelper.withTestApplication(deps, treeFirst = true) { client, _ ->
+                val result = client.callTool(name = "android_capture_screenshot", arguments = mapOf("annotate" to false))
+                assertNotEquals(true, result.isError)
+                assertEquals(2, result.content.size)
+                val tree = (result.content.first() as TextContent).text
+                assertTrue(tree.contains("node_btn\tButton\tOK\t-\t-\t100,200,300,260"), tree)
+                val image = result.content[1] as ImageContent
+                assertEquals("image/jpeg", image.mimeType)
+                assertEquals("dGVzdA==", image.data)
+            }
+            coVerify(exactly = 1) { deps.screenCaptureProvider.captureScreenshotBitmap(any(), any()) }
+        }
+
+    @Test
     fun `get_screen_state without hierarchy and offscreen nodes over streamable http`() =
         runTest {
             val deps = McpIntegrationTestHelper.createMockDependencies()
